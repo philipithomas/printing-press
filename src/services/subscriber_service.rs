@@ -51,8 +51,10 @@ pub async fn create_or_retrieve(
         });
     }
 
-    // Generate login tokens and send confirmation email
-    login_service::create_and_send_login(state, &subscriber).await?;
+    // Generate login tokens and send confirmation email (best-effort)
+    if let Err(e) = login_service::create_and_send_login(state, &subscriber).await {
+        tracing::error!("Failed to send confirmation email to {}: {}", email, e);
+    }
 
     Ok(CreateResult {
         subscriber,

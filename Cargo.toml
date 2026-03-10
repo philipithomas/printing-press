@@ -32,5 +32,5 @@ anyhow = "1"
 [dev-dependencies]
 testcontainers = "0.23"
 testcontainers-modules = { version = "0.11", features = ["postgres"] }
-axum-test = "16"
+axum-test = "19"
 wiremock = "0.6"

@@ -23,7 +23,7 @@ async fn verify_valid_code() {
     let response = app
         .server
         .post("/api/v1/subscribers/verify")
-        .add_header("x-api-key".parse().unwrap(), app.api_key.parse().unwrap())
+        .add_header("x-api-key", &app.api_key)
         .json(&json!({ "token": "123456" }))
         .await;
     response.assert_status_ok();
@@ -48,7 +48,7 @@ async fn verify_expired_token() {
     let response = app
         .server
         .post("/api/v1/subscribers/verify")
-        .add_header("x-api-key".parse().unwrap(), app.api_key.parse().unwrap())
+        .add_header("x-api-key", &app.api_key)
         .json(&json!({ "token": "expired123" }))
         .await;
     response.assert_status(axum::http::StatusCode::BAD_REQUEST);
@@ -61,7 +61,7 @@ async fn verify_invalid_token() {
     let response = app
         .server
         .post("/api/v1/subscribers/verify")
-        .add_header("x-api-key".parse().unwrap(), app.api_key.parse().unwrap())
+        .add_header("x-api-key", &app.api_key)
         .json(&json!({ "token": "nonexistent" }))
         .await;
     response.assert_status(axum::http::StatusCode::BAD_REQUEST);
@@ -83,7 +83,7 @@ async fn verify_already_used_token() {
     // First verification
     app.server
         .post("/api/v1/subscribers/verify")
-        .add_header("x-api-key".parse().unwrap(), app.api_key.parse().unwrap())
+        .add_header("x-api-key", &app.api_key)
         .json(&json!({ "token": "usedtoken" }))
         .await;
 
@@ -91,7 +91,7 @@ async fn verify_already_used_token() {
     let response = app
         .server
         .post("/api/v1/subscribers/verify")
-        .add_header("x-api-key".parse().unwrap(), app.api_key.parse().unwrap())
+        .add_header("x-api-key", &app.api_key)
         .json(&json!({ "token": "usedtoken" }))
         .await;
     response.assert_status(axum::http::StatusCode::BAD_REQUEST);
@@ -119,7 +119,7 @@ async fn verify_magic_link_token() {
     let response = app
         .server
         .post("/api/v1/subscribers/verify")
-        .add_header("x-api-key".parse().unwrap(), app.api_key.parse().unwrap())
+        .add_header("x-api-key", &app.api_key)
         .json(&json!({ "token": "magic-link-uuid-token" }))
         .await;
     response.assert_status_ok();

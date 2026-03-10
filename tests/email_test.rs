@@ -24,7 +24,7 @@ async fn send_email_subscriber_not_found() {
     let response = app
         .server
         .post("/api/v1/emails/send")
-        .add_header("x-api-key".parse().unwrap(), app.api_key.parse().unwrap())
+        .add_header("x-api-key", &app.api_key)
         .json(&json!({
             "subscriber_uuid": "00000000-0000-0000-0000-000000000000",
             "post_slug": "test",

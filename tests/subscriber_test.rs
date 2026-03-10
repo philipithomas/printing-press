@@ -19,7 +19,7 @@ async fn create_subscriber_with_valid_key() {
     let response = app
         .server
         .post("/api/v1/subscribers")
-        .add_header("x-api-key".parse().unwrap(), app.api_key.parse().unwrap())
+        .add_header("x-api-key", &app.api_key)
         .json(&json!({ "email": "test@example.com" }))
         .await;
     response.assert_status_ok();
@@ -36,7 +36,7 @@ async fn create_subscriber_normalizes_email() {
     let response = app
         .server
         .post("/api/v1/subscribers")
-        .add_header("x-api-key".parse().unwrap(), app.api_key.parse().unwrap())
+        .add_header("x-api-key", &app.api_key)
         .json(&json!({ "email": "TEST@Example.COM" }))
         .await;
     response.assert_status_ok();
@@ -51,7 +51,7 @@ async fn create_subscriber_duplicate_returns_existing() {
     // First creation
     app.server
         .post("/api/v1/subscribers")
-        .add_header("x-api-key".parse().unwrap(), app.api_key.parse().unwrap())
+        .add_header("x-api-key", &app.api_key)
         .json(&json!({ "email": "dupe@example.com" }))
         .await;
 
@@ -59,7 +59,7 @@ async fn create_subscriber_duplicate_returns_existing() {
     let response = app
         .server
         .post("/api/v1/subscribers")
-        .add_header("x-api-key".parse().unwrap(), app.api_key.parse().unwrap())
+        .add_header("x-api-key", &app.api_key)
         .json(&json!({ "email": "dupe@example.com" }))
         .await;
     response.assert_status_ok();
@@ -71,7 +71,7 @@ async fn create_subscriber_invalid_email() {
     let response = app
         .server
         .post("/api/v1/subscribers")
-        .add_header("x-api-key".parse().unwrap(), app.api_key.parse().unwrap())
+        .add_header("x-api-key", &app.api_key)
         .json(&json!({ "email": "not-an-email" }))
         .await;
     response.assert_status(axum::http::StatusCode::BAD_REQUEST);
@@ -83,7 +83,7 @@ async fn get_subscriber_by_uuid() {
     let create_resp = app
         .server
         .post("/api/v1/subscribers")
-        .add_header("x-api-key".parse().unwrap(), app.api_key.parse().unwrap())
+        .add_header("x-api-key", &app.api_key)
         .json(&json!({ "email": "get@example.com" }))
         .await;
     let created: serde_json::Value = create_resp.json();
@@ -92,7 +92,7 @@ async fn get_subscriber_by_uuid() {
     let response = app
         .server
         .get(&format!("/api/v1/subscribers/{}", uuid))
-        .add_header("x-api-key".parse().unwrap(), app.api_key.parse().unwrap())
+        .add_header("x-api-key", &app.api_key)
         .await;
     response.assert_status_ok();
     let body: serde_json::Value = response.json();
@@ -105,7 +105,7 @@ async fn update_subscriber_preferences() {
     let create_resp = app
         .server
         .post("/api/v1/subscribers")
-        .add_header("x-api-key".parse().unwrap(), app.api_key.parse().unwrap())
+        .add_header("x-api-key", &app.api_key)
         .json(&json!({ "email": "update@example.com" }))
         .await;
     let created: serde_json::Value = create_resp.json();
@@ -114,7 +114,7 @@ async fn update_subscriber_preferences() {
     let response = app
         .server
         .patch(&format!("/api/v1/subscribers/{}", uuid))
-        .add_header("x-api-key".parse().unwrap(), app.api_key.parse().unwrap())
+        .add_header("x-api-key", &app.api_key)
         .json(&json!({
             "subscribed_workshop": false,
             "name": "Philip"
@@ -132,7 +132,7 @@ async fn google_verified_subscriber_is_confirmed() {
     let response = app
         .server
         .post("/api/v1/subscribers")
-        .add_header("x-api-key".parse().unwrap(), app.api_key.parse().unwrap())
+        .add_header("x-api-key", &app.api_key)
         .json(&json!({
             "email": "google@example.com",
             "name": "Google User",
@@ -151,7 +151,7 @@ async fn unsubscribe_subscriber() {
     let create_resp = app
         .server
         .post("/api/v1/subscribers")
-        .add_header("x-api-key".parse().unwrap(), app.api_key.parse().unwrap())
+        .add_header("x-api-key", &app.api_key)
         .json(&json!({ "email": "unsub@example.com" }))
         .await;
     let created: serde_json::Value = create_resp.json();
@@ -160,7 +160,7 @@ async fn unsubscribe_subscriber() {
     let response = app
         .server
         .post(&format!("/api/v1/subscribers/{}/unsubscribe", uuid))
-        .add_header("x-api-key".parse().unwrap(), app.api_key.parse().unwrap())
+        .add_header("x-api-key", &app.api_key)
         .await;
     response.assert_status_ok();
     let body: serde_json::Value = response.json();

@@ -1,9 +1,11 @@
 use axum_test::TestServer;
 use printing_press::{config::Config, db, routes, state::AppState};
 use sqlx::PgPool;
+use testcontainers::ImageExt;
 use testcontainers::runners::AsyncRunner;
 use testcontainers_modules::postgres::Postgres;
 
+#[allow(dead_code)]
 pub struct TestApp {
     pub server: TestServer,
     pub pool: PgPool,
@@ -13,7 +15,11 @@ pub struct TestApp {
 
 impl TestApp {
     pub async fn new() -> Self {
-        let container = Postgres::default().start().await.unwrap();
+        let container = Postgres::default()
+            .with_tag("17-alpine")
+            .start()
+            .await
+            .unwrap();
         let port = container.get_host_port_ipv4(5432).await.unwrap();
         let database_url = format!("postgres://postgres:postgres@localhost:{}/postgres", port);
 
@@ -33,7 +39,7 @@ impl TestApp {
 
         let state = AppState::new(pool.clone(), config);
         let app = routes::router(state);
-        let server = TestServer::new(app).unwrap();
+        let server = TestServer::new(app);
 
         TestApp {
             server,

@@ -43,9 +43,6 @@ fn default_port() -> u16 {
 
 impl Config {
     pub fn load() -> Result<Self, Box<figment::Error>> {
-        Figment::new()
-            .merge(Env::raw())
-            .extract()
-            .map_err(Box::new)
+        Figment::new().merge(Env::raw()).extract().map_err(Box::new)
     }
 }
