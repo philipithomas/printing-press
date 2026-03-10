@@ -20,7 +20,7 @@ pub struct Config {
 }
 
 fn default_database_url() -> String {
-    "postgres://postgres:postgres@localhost:5432/printing_press".to_string()
+    "postgres://postgres:postgres@localhost:5433/printing_press".to_string()
 }
 fn default_api_key() -> String {
     "dev-api-key".to_string()

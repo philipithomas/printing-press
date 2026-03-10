@@ -23,14 +23,14 @@ cargo run
 curl http://localhost:8080/health
 
 # View API docs
-open http://localhost:8080/swagger-ui
+open http://localhost:8080/docs
 ```
 
 ## Configuration
 
 | Variable | Default | Description |
 |---|---|---|
-| `DATABASE_URL` | `postgres://postgres:postgres@localhost:5432/printing_press` | PostgreSQL connection |
+| `DATABASE_URL` | `postgres://postgres:postgres@localhost:5433/printing_press` | PostgreSQL connection |
 | `M2M_API_KEY` | `dev-api-key` | API authentication key |
 | `AWS_REGION` | `us-east-1` | AWS region for SES |
 | `SES_FROM_EMAIL` | `mail@philipithomas.com` | Sender email address |
@@ -42,7 +42,7 @@ open http://localhost:8080/swagger-ui
 
 All endpoints except `/health` and token-based unsubscribe require `x-api-key` header.
 
-See `/swagger-ui` for full API documentation.
+See `/docs` for full API documentation.
 
 ## Testing
 
