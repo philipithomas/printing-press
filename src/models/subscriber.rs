@@ -43,6 +43,13 @@ pub struct UpdateSubscriberRequest {
 }
 
 impl Subscriber {
+    pub async fn find_by_id(pool: &PgPool, id: i64) -> Result<Option<Self>, sqlx::Error> {
+        sqlx::query_as::<_, Self>("SELECT * FROM subscribers WHERE id = $1")
+            .bind(id)
+            .fetch_optional(pool)
+            .await
+    }
+
     pub async fn find_by_email(pool: &PgPool, email: &str) -> Result<Option<Self>, sqlx::Error> {
         sqlx::query_as::<_, Self>("SELECT * FROM subscribers WHERE email = $1")
             .bind(email.to_lowercase())
@@ -123,5 +130,100 @@ impl Subscriber {
         .bind(id)
         .fetch_one(pool)
         .await
+    }
+
+    pub async fn count_eligible(
+        pool: &PgPool,
+        newsletter: &str,
+        post_slug: &str,
+    ) -> Result<i64, sqlx::Error> {
+        let query = match newsletter {
+            "postcard" => {
+                r#"SELECT COUNT(*) as count FROM subscribers s
+                   WHERE s.confirmed_at IS NOT NULL
+                     AND s.subscribed_postcard = TRUE
+                     AND s.id NOT IN (
+                       SELECT subscriber_id FROM email_sends WHERE post_slug = $1
+                     )"#
+            }
+            "contraption" => {
+                r#"SELECT COUNT(*) as count FROM subscribers s
+                   WHERE s.confirmed_at IS NOT NULL
+                     AND s.subscribed_contraption = TRUE
+                     AND s.id NOT IN (
+                       SELECT subscriber_id FROM email_sends WHERE post_slug = $1
+                     )"#
+            }
+            "workshop" => {
+                r#"SELECT COUNT(*) as count FROM subscribers s
+                   WHERE s.confirmed_at IS NOT NULL
+                     AND s.subscribed_workshop = TRUE
+                     AND s.id NOT IN (
+                       SELECT subscriber_id FROM email_sends WHERE post_slug = $1
+                     )"#
+            }
+            _ => return Ok(0),
+        };
+        let row: (i64,) = sqlx::query_as(query)
+            .bind(post_slug)
+            .fetch_one(pool)
+            .await?;
+        Ok(row.0)
+    }
+
+    pub async fn find_eligible_ids(
+        pool: &PgPool,
+        newsletter: &str,
+        post_slug: &str,
+    ) -> Result<Vec<i64>, sqlx::Error> {
+        let query = match newsletter {
+            "postcard" => {
+                r#"SELECT s.id FROM subscribers s
+                   WHERE s.confirmed_at IS NOT NULL
+                     AND s.subscribed_postcard = TRUE
+                     AND s.id NOT IN (
+                       SELECT subscriber_id FROM email_sends WHERE post_slug = $1
+                     )"#
+            }
+            "contraption" => {
+                r#"SELECT s.id FROM subscribers s
+                   WHERE s.confirmed_at IS NOT NULL
+                     AND s.subscribed_contraption = TRUE
+                     AND s.id NOT IN (
+                       SELECT subscriber_id FROM email_sends WHERE post_slug = $1
+                     )"#
+            }
+            "workshop" => {
+                r#"SELECT s.id FROM subscribers s
+                   WHERE s.confirmed_at IS NOT NULL
+                     AND s.subscribed_workshop = TRUE
+                     AND s.id NOT IN (
+                       SELECT subscriber_id FROM email_sends WHERE post_slug = $1
+                     )"#
+            }
+            _ => return Ok(vec![]),
+        };
+        let rows: Vec<(i64,)> = sqlx::query_as(query)
+            .bind(post_slug)
+            .fetch_all(pool)
+            .await?;
+        Ok(rows.into_iter().map(|(id,)| id).collect())
+    }
+
+    pub async fn delete_with_data(pool: &PgPool, id: i64) -> Result<(), sqlx::Error> {
+        // Delete in dependency order
+        sqlx::query("DELETE FROM logins WHERE subscriber_id = $1")
+            .bind(id)
+            .execute(pool)
+            .await?;
+        sqlx::query("DELETE FROM email_sends WHERE subscriber_id = $1")
+            .bind(id)
+            .execute(pool)
+            .await?;
+        sqlx::query("DELETE FROM subscribers WHERE id = $1")
+            .bind(id)
+            .execute(pool)
+            .await?;
+        Ok(())
     }
 }

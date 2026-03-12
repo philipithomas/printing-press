@@ -10,8 +10,8 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(pool: PgPool, config: Config) -> Self {
-        let email_service = EmailService::new(config.clone());
+    pub async fn new(pool: PgPool, config: Config) -> Self {
+        let email_service = EmailService::new(&config).await;
         Self {
             pool,
             config,

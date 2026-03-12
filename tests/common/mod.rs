@@ -35,9 +35,13 @@ impl TestApp {
             site_url: "http://localhost:3000".to_string(),
             host: "127.0.0.1".to_string(),
             port: 0,
+            email_backend: "smtp".to_string(),
+            smtp_host: "localhost".to_string(),
+            smtp_port: 1025,
+            ses_rate_per_second: 14,
         };
 
-        let state = AppState::new(pool.clone(), config);
+        let state = AppState::new(pool.clone(), config).await;
         let app = routes::router(state);
         let server = TestServer::new(app);
 

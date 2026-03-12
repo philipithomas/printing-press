@@ -17,6 +17,14 @@ pub struct Config {
     pub host: String,
     #[serde(default = "default_port")]
     pub port: u16,
+    #[serde(default = "default_email_backend")]
+    pub email_backend: String,
+    #[serde(default = "default_smtp_host")]
+    pub smtp_host: String,
+    #[serde(default = "default_smtp_port")]
+    pub smtp_port: u16,
+    #[serde(default = "default_ses_rate_per_second")]
+    pub ses_rate_per_second: u32,
 }
 
 fn default_database_url() -> String {
@@ -39,6 +47,18 @@ fn default_host() -> String {
 }
 fn default_port() -> u16 {
     8080
+}
+fn default_email_backend() -> String {
+    "smtp".to_string()
+}
+fn default_smtp_host() -> String {
+    "localhost".to_string()
+}
+fn default_smtp_port() -> u16 {
+    1025
+}
+fn default_ses_rate_per_second() -> u32 {
+    14
 }
 
 impl Config {

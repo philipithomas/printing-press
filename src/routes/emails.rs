@@ -42,7 +42,7 @@ pub async fn send_email(
 
     // Build unsubscribe URL
     let unsubscribe_url = format!(
-        "{}/api/v1/unsubscribe/{}",
+        "{}/unsubscribe?token={}",
         state.config.site_url, email_send.unsubscribe_token
     );
 
@@ -54,10 +54,10 @@ pub async fn send_email(
     )
     .map_err(|e| AppError::Internal(format!("Template error: {}", e)))?;
 
-    // Send via SES
+    // Send via email service
     match state
         .email_service
-        .send_email(&subscriber.email, &req.subject, &html)
+        .send_newsletter(&subscriber.email, &req.subject, &html, &unsubscribe_url)
         .await
     {
         Ok(()) => Ok(Json(email_send)),

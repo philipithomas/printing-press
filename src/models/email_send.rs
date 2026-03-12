@@ -13,6 +13,12 @@ pub struct EmailSend {
     pub send_error: Option<String>,
     pub triggered_unsubscribe_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
+    pub subject: Option<String>,
+    pub html_content: Option<String>,
+    pub newsletter: Option<String>,
+    pub sent_at: Option<DateTime<Utc>>,
+    pub attempts: i32,
+    pub next_attempt_at: Option<DateTime<Utc>>,
 }
 
 impl EmailSend {
@@ -63,5 +69,36 @@ impl EmailSend {
         .bind(error)
         .fetch_one(pool)
         .await
+    }
+
+    pub async fn count_by_slug(pool: &PgPool, slug: &str) -> Result<i64, sqlx::Error> {
+        let row: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM email_sends WHERE post_slug = $1")
+            .bind(slug)
+            .fetch_one(pool)
+            .await?;
+        Ok(row.0)
+    }
+
+    pub async fn bulk_create_queued(
+        pool: &PgPool,
+        subscriber_ids: &[i64],
+        post_slug: &str,
+        newsletter: &str,
+        subject: &str,
+        html_content: &str,
+    ) -> Result<i64, sqlx::Error> {
+        let result = sqlx::query(
+            r#"INSERT INTO email_sends (subscriber_id, post_slug, newsletter, subject, html_content, next_attempt_at)
+               SELECT unnest($1::bigint[]), $2, $3, $4, $5, NOW()
+               "#,
+        )
+        .bind(subscriber_ids)
+        .bind(post_slug)
+        .bind(newsletter)
+        .bind(subject)
+        .bind(html_content)
+        .execute(pool)
+        .await?;
+        Ok(result.rows_affected() as i64)
     }
 }

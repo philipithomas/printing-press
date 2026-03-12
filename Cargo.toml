@@ -5,6 +5,15 @@ edition = "2024"
 license = "MIT"
 authors = ["Philip I. Thomas"]
 description = "Subscription and email backend for philipithomas.com"
+default-run = "printing-press"
+
+[[bin]]
+name = "printing-press"
+path = "src/main.rs"
+
+[[bin]]
+name = "pp"
+path = "src/cli/main.rs"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
@@ -14,6 +23,7 @@ figment = { version = "0.10", features = ["env", "toml"] }
 sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls", "postgres", "uuid", "chrono", "migrate"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+reqwest = { version = "0.12", features = ["json"] }
 reqwest-middleware = "0.4"
 backon = "1"
 aws-sdk-ses = "1"
@@ -28,6 +38,15 @@ rand = "0.9"
 minijinja = { version = "2", features = ["loader"] }
 thiserror = "2"
 anyhow = "1"
+lettre = { version = "0.11", default-features = false, features = ["tokio1-rustls-tls", "smtp-transport", "builder"] }
+clap = { version = "4", features = ["derive"] }
+aes-gcm = "0.10"
+pbkdf2 = { version = "0.12", features = ["simple"] }
+sha2 = "0.10"
+rpassword = "7"
+dialoguer = "0.11"
+dirs = "6"
+base64 = "0.22"
 
 [dev-dependencies]
 testcontainers = "0.23"

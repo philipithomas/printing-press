@@ -1,4 +1,4 @@
-use printing_press::{config::Config, db, state::AppState};
+use printing_press::{config::Config, db, services::queue_worker, state::AppState};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
@@ -15,8 +15,16 @@ async fn main() -> anyhow::Result<()> {
     let pool = db::connect(&config.database_url).await?;
     db::migrate(&pool).await?;
 
-    let state = AppState::new(pool, config.clone());
-    let app = printing_press::routes::router(state);
+    let state = AppState::new(pool, config.clone()).await;
+    let app = printing_press::routes::router(state.clone());
+
+    // Spawn background queue worker
+    let worker_pool = state.pool.clone();
+    let worker_email = state.email_service.clone();
+    let worker_config = state.config.clone();
+    tokio::spawn(async move {
+        queue_worker::run(worker_pool, worker_email, worker_config).await;
+    });
 
     let addr = format!("{}:{}", config.host, config.port);
     tracing::info!("Starting server on {}", addr);
