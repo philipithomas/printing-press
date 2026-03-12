@@ -42,6 +42,18 @@ pub struct UpdateSubscriberRequest {
     pub subscribed_workshop: Option<bool>,
 }
 
+/// Maps a newsletter name to the corresponding subscription column.
+/// Returns None for invalid newsletter names. Safe for SQL interpolation
+/// because the return values are hardcoded string literals.
+fn newsletter_column(newsletter: &str) -> Option<&'static str> {
+    match newsletter {
+        "postcard" => Some("subscribed_postcard"),
+        "contraption" => Some("subscribed_contraption"),
+        "workshop" => Some("subscribed_workshop"),
+        _ => None,
+    }
+}
+
 impl Subscriber {
     pub async fn find_by_id(pool: &PgPool, id: i64) -> Result<Option<Self>, sqlx::Error> {
         sqlx::query_as::<_, Self>("SELECT * FROM subscribers WHERE id = $1")
@@ -137,34 +149,21 @@ impl Subscriber {
         newsletter: &str,
         post_slug: &str,
     ) -> Result<i64, sqlx::Error> {
-        let query = match newsletter {
-            "postcard" => {
-                r#"SELECT COUNT(*) as count FROM subscribers s
-                   WHERE s.confirmed_at IS NOT NULL
-                     AND s.subscribed_postcard = TRUE
-                     AND s.id NOT IN (
-                       SELECT subscriber_id FROM email_sends WHERE post_slug = $1
-                     )"#
-            }
-            "contraption" => {
-                r#"SELECT COUNT(*) as count FROM subscribers s
-                   WHERE s.confirmed_at IS NOT NULL
-                     AND s.subscribed_contraption = TRUE
-                     AND s.id NOT IN (
-                       SELECT subscriber_id FROM email_sends WHERE post_slug = $1
-                     )"#
-            }
-            "workshop" => {
-                r#"SELECT COUNT(*) as count FROM subscribers s
-                   WHERE s.confirmed_at IS NOT NULL
-                     AND s.subscribed_workshop = TRUE
-                     AND s.id NOT IN (
-                       SELECT subscriber_id FROM email_sends WHERE post_slug = $1
-                     )"#
-            }
-            _ => return Ok(0),
-        };
-        let row: (i64,) = sqlx::query_as(query)
+        let column = newsletter_column(newsletter);
+        if column.is_none() {
+            return Ok(0);
+        }
+        let query = format!(
+            r#"SELECT COUNT(*) FROM subscribers s
+               WHERE s.confirmed_at IS NOT NULL
+                 AND s.{} = TRUE
+                 AND NOT EXISTS (
+                   SELECT 1 FROM email_sends es
+                   WHERE es.subscriber_id = s.id AND es.post_slug = $1
+                 )"#,
+            column.unwrap()
+        );
+        let row: (i64,) = sqlx::query_as(&query)
             .bind(post_slug)
             .fetch_one(pool)
             .await?;
@@ -176,34 +175,21 @@ impl Subscriber {
         newsletter: &str,
         post_slug: &str,
     ) -> Result<Vec<i64>, sqlx::Error> {
-        let query = match newsletter {
-            "postcard" => {
-                r#"SELECT s.id FROM subscribers s
-                   WHERE s.confirmed_at IS NOT NULL
-                     AND s.subscribed_postcard = TRUE
-                     AND s.id NOT IN (
-                       SELECT subscriber_id FROM email_sends WHERE post_slug = $1
-                     )"#
-            }
-            "contraption" => {
-                r#"SELECT s.id FROM subscribers s
-                   WHERE s.confirmed_at IS NOT NULL
-                     AND s.subscribed_contraption = TRUE
-                     AND s.id NOT IN (
-                       SELECT subscriber_id FROM email_sends WHERE post_slug = $1
-                     )"#
-            }
-            "workshop" => {
-                r#"SELECT s.id FROM subscribers s
-                   WHERE s.confirmed_at IS NOT NULL
-                     AND s.subscribed_workshop = TRUE
-                     AND s.id NOT IN (
-                       SELECT subscriber_id FROM email_sends WHERE post_slug = $1
-                     )"#
-            }
-            _ => return Ok(vec![]),
-        };
-        let rows: Vec<(i64,)> = sqlx::query_as(query)
+        let column = newsletter_column(newsletter);
+        if column.is_none() {
+            return Ok(vec![]);
+        }
+        let query = format!(
+            r#"SELECT s.id FROM subscribers s
+               WHERE s.confirmed_at IS NOT NULL
+                 AND s.{} = TRUE
+                 AND NOT EXISTS (
+                   SELECT 1 FROM email_sends es
+                   WHERE es.subscriber_id = s.id AND es.post_slug = $1
+                 )"#,
+            column.unwrap()
+        );
+        let rows: Vec<(i64,)> = sqlx::query_as(&query)
             .bind(post_slug)
             .fetch_all(pool)
             .await?;
@@ -211,19 +197,20 @@ impl Subscriber {
     }
 
     pub async fn delete_with_data(pool: &PgPool, id: i64) -> Result<(), sqlx::Error> {
-        // Delete in dependency order
+        let mut tx = pool.begin().await?;
         sqlx::query("DELETE FROM logins WHERE subscriber_id = $1")
             .bind(id)
-            .execute(pool)
+            .execute(&mut *tx)
             .await?;
         sqlx::query("DELETE FROM email_sends WHERE subscriber_id = $1")
             .bind(id)
-            .execute(pool)
+            .execute(&mut *tx)
             .await?;
         sqlx::query("DELETE FROM subscribers WHERE id = $1")
             .bind(id)
-            .execute(pool)
+            .execute(&mut *tx)
             .await?;
+        tx.commit().await?;
         Ok(())
     }
 }

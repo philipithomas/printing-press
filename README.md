@@ -9,6 +9,7 @@ Subscription and email backend for [philipithomas.com](https://philipithomas.com
 - Newsletter subscription preferences (Postcard, Contraption, Workshop)
 - Bulk email sending via Postgres-backed queue + AWS SES
 - CLI tool (`pp`) for triggering newsletter sends
+- Token-based unsubscribe with per-newsletter preference management
 - Local email preview via Mailpit
 - OpenAPI documentation with Swagger UI
 
@@ -33,6 +34,8 @@ open http://localhost:8025
 
 ## CLI (`pp`)
 
+The `pp` CLI orchestrates newsletter sends. It fetches post content from the website, validates with the server, and enqueues emails for background delivery.
+
 ### Install
 
 ```bash
@@ -53,7 +56,7 @@ pp login
 pp -e prd login
 ```
 
-Keys are encrypted with a password and stored in `~/.printing-press/`.
+Keys are encrypted with AES-256-GCM (PBKDF2 key derivation) and stored in `~/.printing-press/`.
 
 ### Publish
 
@@ -72,10 +75,38 @@ pp -e prd publish my-post --force
 ```
 
 The publish command:
-1. Fetches post metadata from the website
+1. Fetches post metadata + email HTML from the website (`GET /api/posts/{slug}`)
 2. Validates subscriber counts with the server
 3. Prompts for confirmation before sending
-4. Enqueues emails for background delivery
+4. Enqueues emails for background delivery via the queue worker
+
+### Environments
+
+| Name | Server | Website | Key file |
+|------|--------|---------|----------|
+| `development` (default) | `http://localhost:8080` | `http://localhost:3000` | `~/.printing-press/dev.key` |
+| `prd` / `production` | `https://printing-press.contraption.co` | `https://philipithomas.com` | `~/.printing-press/prd.key` |
+
+## Email Delivery
+
+Emails are sent via a Postgres-backed queue with a background worker:
+
+1. `pp publish` (or the `/api/v1/publish/send` endpoint) inserts rows into `email_sends` with `next_attempt_at = NOW()`
+2. The queue worker polls every second, sends emails at the configured rate limit, and marks rows as sent
+3. Failed sends retry with exponential backoff (30s, 60s, 120s, 240s, 480s), max 5 attempts
+4. Outgoing newsletter emails include `List-Unsubscribe` and `List-Unsubscribe-Post` headers for native one-click unsubscribe in Gmail/Apple Mail
+
+In development, emails are sent via SMTP to Mailpit (viewable at `http://localhost:8025`). In production, emails are sent via AWS SES.
+
+## Unsubscribe
+
+Each email contains a token-based unsubscribe link pointing to the frontend (`/unsubscribe?token=...`). The frontend proxies to these printing-press endpoints:
+
+- `GET /api/v1/unsubscribe/{token}/preferences` — masked email + subscription state
+- `PATCH /api/v1/unsubscribe/{token}/preferences` — toggle individual newsletters
+- `DELETE /api/v1/unsubscribe/{token}/account` — permanently delete subscriber and all data
+
+The legacy `GET /api/v1/unsubscribe/{token}` endpoint redirects to the frontend unsubscribe page.
 
 ## Configuration
 
@@ -85,7 +116,7 @@ The publish command:
 | `M2M_API_KEY` | `dev-api-key` | API authentication key |
 | `AWS_REGION` | `us-east-1` | AWS region for SES |
 | `SES_FROM_EMAIL` | `mail@philipithomas.com` | Sender email address |
-| `SITE_URL` | `http://localhost:3000` | Frontend URL for redirects |
+| `SITE_URL` | `http://localhost:3000` | Frontend URL for unsubscribe links |
 | `HOST` | `0.0.0.0` | Server bind address |
 | `PORT` | `8080` | Server port |
 | `EMAIL_BACKEND` | `smtp` | Email backend: `smtp` (Mailpit) or `ses` (AWS) |
