@@ -27,6 +27,14 @@ pub async fn create_or_retrieve(
                 is_new: false,
             });
         }
+
+        // If not yet confirmed, resend confirmation email
+        if existing.confirmed_at.is_none() {
+            if let Err(e) = login_service::create_and_send_login(state, &existing).await {
+                tracing::error!("Failed to resend confirmation email to {}: {}", email, e);
+            }
+        }
+
         return Ok(CreateResult {
             subscriber: existing,
             is_new: false,

@@ -1,6 +1,7 @@
 mod common;
 
 use serde_json::json;
+use sqlx::Row;
 
 #[tokio::test]
 async fn create_subscriber_requires_auth() {
@@ -143,6 +144,99 @@ async fn google_verified_subscriber_is_confirmed() {
     let body: serde_json::Value = response.json();
     assert!(body["confirmed_at"].as_str().is_some());
     assert_eq!(body["name"], "Google User");
+}
+
+#[tokio::test]
+async fn resubmit_unconfirmed_subscriber_sends_new_login() {
+    let app = common::TestApp::new().await;
+
+    // First creation — generates login tokens
+    app.server
+        .post("/api/v1/subscribers")
+        .add_header("x-api-key", &app.api_key)
+        .json(&json!({ "email": "retry@example.com" }))
+        .await;
+
+    let count_after_first: i64 = sqlx::query(
+        "SELECT COUNT(*) as count FROM logins l
+         JOIN subscribers s ON l.subscriber_id = s.id
+         WHERE s.email = 'retry@example.com'",
+    )
+    .fetch_one(&app.pool)
+    .await
+    .unwrap()
+    .get("count");
+
+    // Should have 2 logins (code + magic_link)
+    assert_eq!(count_after_first, 2);
+
+    // Second creation — subscriber is unconfirmed, should generate new logins
+    let response = app
+        .server
+        .post("/api/v1/subscribers")
+        .add_header("x-api-key", &app.api_key)
+        .json(&json!({ "email": "retry@example.com" }))
+        .await;
+    response.assert_status_ok();
+    let body: serde_json::Value = response.json();
+    assert!(body["confirmed_at"].is_null());
+
+    let count_after_second: i64 = sqlx::query(
+        "SELECT COUNT(*) as count FROM logins l
+         JOIN subscribers s ON l.subscriber_id = s.id
+         WHERE s.email = 'retry@example.com'",
+    )
+    .fetch_one(&app.pool)
+    .await
+    .unwrap()
+    .get("count");
+
+    // Should now have 4 logins (2 from first + 2 from resend)
+    assert_eq!(count_after_second, 4);
+}
+
+#[tokio::test]
+async fn resubmit_confirmed_subscriber_does_not_resend() {
+    let app = common::TestApp::new().await;
+
+    // Create and confirm via google_verified
+    app.server
+        .post("/api/v1/subscribers")
+        .add_header("x-api-key", &app.api_key)
+        .json(&json!({
+            "email": "confirmed@example.com",
+            "google_verified": true
+        }))
+        .await;
+
+    let count_before: i64 = sqlx::query(
+        "SELECT COUNT(*) as count FROM logins l
+         JOIN subscribers s ON l.subscriber_id = s.id
+         WHERE s.email = 'confirmed@example.com'",
+    )
+    .fetch_one(&app.pool)
+    .await
+    .unwrap()
+    .get("count");
+
+    // Resubmit — already confirmed, should NOT create new logins
+    app.server
+        .post("/api/v1/subscribers")
+        .add_header("x-api-key", &app.api_key)
+        .json(&json!({ "email": "confirmed@example.com" }))
+        .await;
+
+    let count_after: i64 = sqlx::query(
+        "SELECT COUNT(*) as count FROM logins l
+         JOIN subscribers s ON l.subscriber_id = s.id
+         WHERE s.email = 'confirmed@example.com'",
+    )
+    .fetch_one(&app.pool)
+    .await
+    .unwrap()
+    .get("count");
+
+    assert_eq!(count_before, count_after);
 }
 
 #[tokio::test]
