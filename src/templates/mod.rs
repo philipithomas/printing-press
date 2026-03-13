@@ -27,12 +27,19 @@ pub fn render_newsletter(
     let mut env = Environment::new();
     env.add_template("newsletter", include_str!("newsletter.html"))?;
     let tmpl = env.get_template("newsletter")?;
+    let bg_color = match newsletter {
+        Some("contraption") => "#f2f2f1",
+        Some("workshop") => "#f3f0e9",
+        Some("postcard") => "#f5f6fa",
+        _ => "#f5f3f0",
+    };
     let result = tmpl.render(context! {
         content => content,
         unsubscribe_url => unsubscribe_url,
         site_url => site_url,
         site_title => "philipithomas.com",
         newsletter => newsletter.unwrap_or(""),
+        bg_color => bg_color,
         current_year => chrono::Utc::now().format("%Y").to_string(),
     })?;
     Ok(result)
