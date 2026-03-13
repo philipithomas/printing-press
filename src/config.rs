@@ -25,6 +25,14 @@ pub struct Config {
     pub smtp_port: u16,
     #[serde(default = "default_ses_rate_per_second")]
     pub ses_rate_per_second: u32,
+    #[serde(default)]
+    pub lob_api_key: String,
+    #[serde(default)]
+    pub stripe_secret_key: String,
+    #[serde(default = "default_stripe_product_id")]
+    pub stripe_product_id: String,
+    #[serde(default)]
+    pub chromium_path: String,
 }
 
 fn default_database_url() -> String {
@@ -59,6 +67,9 @@ fn default_smtp_port() -> u16 {
 }
 fn default_ses_rate_per_second() -> u32 {
     14
+}
+fn default_stripe_product_id() -> String {
+    "prod_TNjLOf5BZLeoKW".to_string()
 }
 
 impl Config {

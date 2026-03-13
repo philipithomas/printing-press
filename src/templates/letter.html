@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en" style="box-sizing: border-box;">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ title }}</title>
+  <style>
+    @font-face {
+      font-family: 'Sohne';
+      src: url('https://fonts.philipithomas.com/klim/soehne-buch.woff2') format('woff2');
+      font-weight: 400;
+      font-style: normal;
+      font-display: block;
+    }
+
+    @font-face {
+      font-family: 'Sohne';
+      src: url('https://fonts.philipithomas.com/klim/soehne-halbfett.woff2') format('woff2');
+      font-weight: 600;
+      font-style: normal;
+      font-display: block;
+    }
+
+    @font-face {
+      font-family: 'Tiempos Text';
+      src: url('https://fonts.philipithomas.com/klim/tiempos-text-regular.woff2') format('woff2');
+      font-weight: 100 900;
+      font-style: normal;
+      font-display: block;
+    }
+
+    @font-face {
+      font-family: 'Tiempos Text';
+      src: url('https://fonts.philipithomas.com/klim/tiempos-text-regular-italic.woff2') format('woff2');
+      font-weight: 100 900;
+      font-style: italic;
+      font-display: block;
+    }
+
+    @font-face {
+      font-family: 'Sohne Mono';
+      src: url('https://fonts.philipithomas.com/klim/soehne-mono-buch.woff2') format('woff2');
+      font-weight: 400;
+      font-style: normal;
+      font-display: block;
+    }
+
+    @page {
+      size: Letter;
+      margin: 0.5in;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Tiempos Text', Georgia, 'Times New Roman', serif;
+      color: #111;
+      background: white;
+    }
+
+    .page {
+      max-width: 8.5in;
+      margin: 0 auto;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+    }
+
+    .prose img {
+      max-width: 100%;
+      height: auto;
+    }
+
+    .masthead {
+      display: flex;
+      align-items: center;
+      padding: 0;
+    }
+
+    .masthead img {
+      height: 18px;
+    }
+
+    .hero {
+      width: 100%;
+      margin: 0.5in auto 0.35in auto;
+      text-align: center;
+    }
+
+    .article {
+      width: 62%;
+      min-width: 4.75in;
+      max-width: 6.4in;
+      margin: 0 auto;
+    }
+
+    .meta {
+      font-family: 'Sohne Mono', 'Roboto Mono', monospace;
+      font-size: 11px;
+      font-weight: 400;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #515151;
+      margin-bottom: 6px;
+    }
+
+    h1 {
+      font-family: 'Sohne', 'Helvetica Neue', Helvetica, sans-serif;
+      font-weight: 600;
+      font-size: 32px;
+      line-height: 1.12;
+      letter-spacing: -0.02em;
+      margin: 0 0 10px 0;
+      text-wrap: balance;
+    }
+
+    .subtitle {
+      font-family: 'Tiempos Text', Georgia, serif;
+      font-size: 18px;
+      line-height: 1.35;
+      color: #3B3B3B;
+      margin: 0 0 14px 0;
+      font-weight: 400;
+      text-wrap: balance;
+    }
+
+    .authors {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .author-name {
+      font-family: 'Sohne', 'Helvetica Neue', Helvetica, sans-serif;
+      font-weight: 500;
+      font-size: 14px;
+      line-height: 1.2;
+      color: #625E58;
+      display: inline-flex;
+      align-items: center;
+      height: 36px;
+    }
+
+    .cover {
+      margin: 18px auto 22px auto;
+      width: 100%;
+    }
+
+    .cover img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .prose {
+      font-family: 'Tiempos Text', Georgia, serif;
+      font-size: 14.75px;
+      line-height: 1.58;
+      color: #111;
+      letter-spacing: -0.003em;
+      padding: 0;
+    }
+
+    .prose p {
+      margin: 0 0 16px 0;
+    }
+
+    .prose strong {
+      font-weight: 700;
+    }
+
+    .prose em {
+      font-style: italic;
+    }
+
+    .prose a {
+      color: inherit;
+      text-decoration: underline;
+      text-decoration-thickness: 1.5px;
+      text-underline-offset: 2px;
+    }
+
+    .prose h2, .prose h3, .prose h4 {
+      font-family: 'Sohne', 'Helvetica Neue', Helvetica, sans-serif;
+      font-weight: 600;
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+      margin: 24px 0 10px 0;
+      color: #111;
+    }
+
+    .prose h2 { font-size: 22px; }
+    .prose h3 { font-size: 18px; }
+    .prose h4 { font-size: 16px; }
+
+    .prose ul, .prose ol {
+      margin: 0 0 16px 20px;
+      padding: 0;
+    }
+
+    .prose li {
+      margin-bottom: 8px;
+    }
+
+    .prose blockquote {
+      border-left: 3px solid #ECECEC;
+      margin: 0 0 18px 0;
+      padding: 0 0 0 14px;
+      color: #3B3B3B;
+    }
+
+    .prose code, .prose pre {
+      font-family: 'Sohne Mono', 'Roboto Mono', monospace;
+      background: #F7F7F7;
+      border-radius: 4px;
+      color: #1A1A1A;
+    }
+
+    .prose code {
+      padding: 2px 5px;
+      font-size: 13px;
+    }
+
+    .prose pre {
+      padding: 12px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .end-cap {
+      width: 12px;
+      height: 12px;
+      background: #000;
+      border: 1px solid #000;
+      display: block;
+      margin: 30px auto 10px auto;
+      page-break-inside: avoid;
+      border-radius: 2px;
+      box-shadow: inset 0 0 0 999px #000;
+    }
+
+    .qr-section {
+      text-align: center;
+      margin: 24px auto 20px auto;
+      page-break-inside: avoid;
+    }
+
+    .qr-section svg {
+      width: 120px;
+      height: 120px;
+    }
+
+    .qr-label {
+      font-family: 'Sohne Mono', 'Roboto Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #515151;
+      margin: 6px 0 0 0;
+    }
+
+    .footer-note {
+      font-size: 11px;
+      color: #515151;
+      margin-top: 18px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="masthead">
+      <img src="{{ site_url }}/images/{{ logo_file }}" alt="{{ newsletter }} logo">
+    </header>
+    <section class="hero">
+      {% if published_at %}<div class="meta">{{ published_at }}</div>{% endif %}
+      <h1>{{ title }}</h1>
+      {% if subtitle %}<p class="subtitle">{{ subtitle }}</p>{% endif %}
+      <div class="authors">
+        <img class="avatar" src="{{ site_url }}/images/author.jpg" alt="Philip I. Thomas">
+        <span class="author-name">Philip I. Thomas</span>
+      </div>
+    </section>
+    <article class="article">
+      {% if cover_image %}
+      <div class="cover">
+        <img src="{{ cover_image }}" alt="{{ cover_image_alt }}">
+      </div>
+      {% endif %}
+      <section class="prose">
+        {{ html_content }}
+      </section>
+      <div class="end-cap" aria-hidden="true"></div>
+      <div class="qr-section">
+        {{ qr_svg }}
+        <p class="qr-label">Read online</p>
+      </div>
+    </article>
+  </main>
+</body>
+</html>

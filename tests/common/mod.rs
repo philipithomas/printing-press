@@ -39,6 +39,10 @@ impl TestApp {
             smtp_host: "localhost".to_string(),
             smtp_port: 1025,
             ses_rate_per_second: 14,
+            lob_api_key: String::new(),
+            stripe_secret_key: String::new(),
+            stripe_product_id: "prod_TNjLOf5BZLeoKW".to_string(),
+            chromium_path: String::new(),
         };
 
         let state = AppState::new(pool.clone(), config).await;

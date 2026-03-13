@@ -14,6 +14,14 @@ pub struct PostInfo {
     pub title: String,
     pub newsletter: String,
     pub email_html: String,
+    #[serde(default)]
+    pub subtitle: Option<String>,
+    #[serde(default)]
+    pub published_at: Option<String>,
+    #[serde(default)]
+    pub cover_image: Option<String>,
+    #[serde(default)]
+    pub cover_image_alt: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -57,6 +65,67 @@ struct SendOneBody {
 
 #[derive(Debug, Deserialize)]
 pub struct SendOneResponse {
+    pub status: String,
+    pub error: Option<String>,
+}
+
+// --- Mail types ---
+
+#[derive(Debug, Serialize)]
+struct MailValidateBody {
+    post_slug: String,
+    newsletter: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct MailValidateResponse {
+    pub eligible_recipients: u32,
+    pub already_sent: i64,
+}
+
+#[derive(Debug, Serialize)]
+struct MailSendBody {
+    post_slug: String,
+    newsletter: String,
+    subject: String,
+    html_content: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    subtitle: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    published_at: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cover_image: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cover_image_alt: Option<String>,
+    force: bool,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct MailSendResponse {
+    pub sent: u32,
+    pub skipped: u32,
+    pub errors: u32,
+}
+
+#[derive(Debug, Serialize)]
+struct MailSendOneBody {
+    email: String,
+    post_slug: String,
+    newsletter: String,
+    subject: String,
+    html_content: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    subtitle: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    published_at: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cover_image: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cover_image_alt: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct MailSendOneResponse {
     pub status: String,
     pub error: Option<String>,
 }
@@ -197,6 +266,131 @@ impl PpClient {
                 error: "Unknown error".to_string(),
             });
             anyhow::bail!("Send failed ({}): {}", status, body.error);
+        }
+
+        Ok(resp.json().await?)
+    }
+
+    // --- Mail methods ---
+
+    pub async fn mail_validate(
+        &self,
+        post_slug: &str,
+        newsletter: &str,
+    ) -> anyhow::Result<MailValidateResponse> {
+        let url = format!("{}/api/v1/mail/validate", self.server_url);
+        let resp = self
+            .client
+            .post(&url)
+            .header("x-api-key", &self.api_key)
+            .json(&MailValidateBody {
+                post_slug: post_slug.to_string(),
+                newsletter: newsletter.to_string(),
+            })
+            .send()
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to reach server at {}: {}", url, e))?;
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body: ErrorResponse = resp.json().await.unwrap_or(ErrorResponse {
+                error: "Unknown error".to_string(),
+            });
+            anyhow::bail!("Mail validate failed ({}): {}", status, body.error);
+        }
+
+        Ok(resp.json().await?)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub async fn mail_send(
+        &self,
+        post_slug: &str,
+        newsletter: &str,
+        subject: &str,
+        html_content: &str,
+        subtitle: Option<&str>,
+        published_at: Option<&str>,
+        cover_image: Option<&str>,
+        cover_image_alt: Option<&str>,
+        force: bool,
+    ) -> anyhow::Result<MailSendResponse> {
+        let url = format!("{}/api/v1/mail/send", self.server_url);
+        let resp = self
+            .client
+            .post(&url)
+            .header("x-api-key", &self.api_key)
+            .json(&MailSendBody {
+                post_slug: post_slug.to_string(),
+                newsletter: newsletter.to_string(),
+                subject: subject.to_string(),
+                html_content: html_content.to_string(),
+                subtitle: subtitle.map(String::from),
+                published_at: published_at.map(String::from),
+                cover_image: cover_image.map(String::from),
+                cover_image_alt: cover_image_alt.map(String::from),
+                force,
+            })
+            .send()
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to reach server: {}", e))?;
+
+        if resp.status() == reqwest::StatusCode::CONFLICT {
+            let body: ErrorResponse = resp.json().await.unwrap_or(ErrorResponse {
+                error: "Already sent".to_string(),
+            });
+            anyhow::bail!("{}", body.error);
+        }
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body: ErrorResponse = resp.json().await.unwrap_or(ErrorResponse {
+                error: "Unknown error".to_string(),
+            });
+            anyhow::bail!("Mail send failed ({}): {}", status, body.error);
+        }
+
+        Ok(resp.json().await?)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub async fn mail_send_one(
+        &self,
+        email: &str,
+        post_slug: &str,
+        newsletter: &str,
+        subject: &str,
+        html_content: &str,
+        subtitle: Option<&str>,
+        published_at: Option<&str>,
+        cover_image: Option<&str>,
+        cover_image_alt: Option<&str>,
+    ) -> anyhow::Result<MailSendOneResponse> {
+        let url = format!("{}/api/v1/mail/send-one", self.server_url);
+        let resp = self
+            .client
+            .post(&url)
+            .header("x-api-key", &self.api_key)
+            .json(&MailSendOneBody {
+                email: email.to_string(),
+                post_slug: post_slug.to_string(),
+                newsletter: newsletter.to_string(),
+                subject: subject.to_string(),
+                html_content: html_content.to_string(),
+                subtitle: subtitle.map(String::from),
+                published_at: published_at.map(String::from),
+                cover_image: cover_image.map(String::from),
+                cover_image_alt: cover_image_alt.map(String::from),
+            })
+            .send()
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to reach server: {}", e))?;
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body: ErrorResponse = resp.json().await.unwrap_or(ErrorResponse {
+                error: "Unknown error".to_string(),
+            });
+            anyhow::bail!("Mail send failed ({}): {}", status, body.error);
         }
 
         Ok(resp.json().await?)

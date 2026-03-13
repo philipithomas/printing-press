@@ -23,7 +23,7 @@ figment = { version = "0.10", features = ["env", "toml"] }
 sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls", "postgres", "uuid", "chrono", "migrate"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.12", features = ["json", "multipart"] }
 reqwest-middleware = "0.4"
 backon = "1"
 aws-sdk-ses = "1"
@@ -41,6 +41,10 @@ anyhow = "1"
 lettre = { version = "0.11", default-features = false, features = ["tokio1-rustls-tls", "smtp-transport", "builder"] }
 clap = { version = "4", features = ["derive"] }
 dialoguer = "0.11"
+sha2 = "0.10"
+tempfile = "3"
+lopdf = "0.34"
+qrcode = "0.14"
 
 [dev-dependencies]
 testcontainers = "0.23"

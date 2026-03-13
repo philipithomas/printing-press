@@ -28,6 +28,17 @@ enum Commands {
         #[arg(long)]
         to: Option<String>,
     },
+    /// Send physical mail for a post via Lob
+    Mail {
+        /// Post slug (e.g., "my-post")
+        slug: String,
+        /// Force send even if some recipients already received it
+        #[arg(long)]
+        force: bool,
+        /// Send to a single email address (test mode — looks up Stripe customer by email)
+        #[arg(long)]
+        to: Option<String>,
+    },
 }
 
 #[tokio::main]
@@ -38,6 +49,9 @@ async fn main() -> anyhow::Result<()> {
     match cli.command {
         Commands::Publish { slug, force, to } => {
             commands::publish::run(&env_config, &slug, force, to.as_deref()).await?;
+        }
+        Commands::Mail { slug, force, to } => {
+            commands::mail::run(&env_config, &slug, force, to.as_deref()).await?;
         }
     }
 
