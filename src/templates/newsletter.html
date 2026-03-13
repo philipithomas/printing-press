@@ -18,7 +18,21 @@
       <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px;">
         <tr>
           <td style="padding: 0 0 20px; text-align: center;">
+            {% if newsletter == "contraption" %}
+            <a href="{{ site_url }}/contraption" style="text-decoration: none;">
+              <img src="{{ site_url }}/images/contraption.svg" alt="Contraption" height="17" style="height: 17px; width: auto;">
+            </a>
+            {% elif newsletter == "workshop" %}
+            <a href="{{ site_url }}/workshop" style="text-decoration: none;">
+              <img src="{{ site_url }}/images/workshop-brand.svg" alt="Workshop" height="24" style="height: 24px; width: auto;">
+            </a>
+            {% elif newsletter == "postcard" %}
+            <a href="{{ site_url }}/postcard" style="text-decoration: none;">
+              <img src="{{ site_url }}/images/postcard.svg" alt="Postcard" height="18" style="height: 18px; width: auto;">
+            </a>
+            {% else %}
             <a href="{{ site_url }}" style="font-family: 'Sohne', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: #111110; text-decoration: none;">Philip I. Thomas</a>
+            {% endif %}
           </td>
         </tr>
       </table>

@@ -16,6 +16,7 @@ struct QueuedEmail {
     subscriber_id: i64,
     #[allow(dead_code)]
     post_slug: String,
+    newsletter: Option<String>,
     unsubscribe_token: Uuid,
     subject: Option<String>,
     html_content: Option<String>,
@@ -72,6 +73,7 @@ async fn process_batch(
             html_content,
             &unsubscribe_url,
             &config.site_url,
+            queued.newsletter.as_deref(),
         ) {
             Ok(h) => h,
             Err(e) => {
@@ -144,7 +146,7 @@ fn next_attempt_delay(attempts: i32) -> Duration {
 
 async fn fetch_pending(pool: &PgPool, limit: i64) -> Result<Vec<QueuedEmail>, sqlx::Error> {
     sqlx::query_as::<_, QueuedEmail>(
-        r#"SELECT es.id, es.subscriber_id, es.post_slug, es.unsubscribe_token,
+        r#"SELECT es.id, es.subscriber_id, es.post_slug, es.newsletter, es.unsubscribe_token,
                   es.subject, es.html_content, es.attempts, s.email
            FROM email_sends es
            JOIN subscribers s ON s.id = es.subscriber_id

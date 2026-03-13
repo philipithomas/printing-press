@@ -50,6 +50,7 @@ pub struct SendResponse {
 struct SendOneBody {
     email: String,
     post_slug: String,
+    newsletter: String,
     subject: String,
     html_content: String,
 }
@@ -170,6 +171,7 @@ impl PpClient {
         &self,
         email: &str,
         post_slug: &str,
+        newsletter: &str,
         subject: &str,
         html_content: &str,
     ) -> anyhow::Result<SendOneResponse> {
@@ -181,6 +183,7 @@ impl PpClient {
             .json(&SendOneBody {
                 email: email.to_string(),
                 post_slug: post_slug.to_string(),
+                newsletter: newsletter.to_string(),
                 subject: subject.to_string(),
                 html_content: html_content.to_string(),
             })

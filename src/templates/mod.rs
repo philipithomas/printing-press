@@ -22,6 +22,7 @@ pub fn render_newsletter(
     content: &str,
     unsubscribe_url: &str,
     site_url: &str,
+    newsletter: Option<&str>,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     let mut env = Environment::new();
     env.add_template("newsletter", include_str!("newsletter.html"))?;
@@ -31,6 +32,7 @@ pub fn render_newsletter(
         unsubscribe_url => unsubscribe_url,
         site_url => site_url,
         site_title => "Philip I. Thomas",
+        newsletter => newsletter.unwrap_or(""),
         current_year => chrono::Utc::now().format("%Y").to_string(),
     })?;
     Ok(result)

@@ -1,8 +1,7 @@
 use dialoguer::Confirm;
 
 use crate::client::PpClient;
-use crate::config::EnvConfig;
-use crate::keystore;
+use crate::config::{self, EnvConfig};
 
 pub async fn run(
     env_config: &EnvConfig,
@@ -10,12 +9,8 @@ pub async fn run(
     force: bool,
     to: Option<&str>,
 ) -> anyhow::Result<()> {
-    // Step 1: Decrypt API key
-    let password = rpassword::prompt_password(format!(
-        "Enter decryption password for {}: ",
-        env_config.name
-    ))?;
-    let api_key = keystore::decrypt(env_config, &password)?;
+    // Step 1: Get API key from 1Password
+    let api_key = config::read_api_key(env_config)?;
     let client = PpClient::new(env_config, api_key);
 
     // Step 2: Fetch post from website
@@ -52,7 +47,7 @@ pub async fn run(
         }
 
         let result = client
-            .send_one(email, slug, &subject, &post.email_html)
+            .send_one(email, slug, &post.newsletter, &subject, &post.email_html)
             .await?;
 
         if result.status == "sent" {

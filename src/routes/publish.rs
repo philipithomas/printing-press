@@ -159,6 +159,7 @@ pub async fn send(
 pub struct SendOneRequest {
     pub email: String,
     pub post_slug: String,
+    pub newsletter: Option<String>,
     pub subject: String,
     pub html_content: String,
 }
@@ -203,6 +204,7 @@ pub async fn send_one(
         &req.html_content,
         &unsubscribe_url,
         &state.config.site_url,
+        req.newsletter.as_deref(),
     )
     .map_err(|e| AppError::Internal(format!("Template error: {}", e)))?;
 
