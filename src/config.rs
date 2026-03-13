@@ -37,7 +37,7 @@ fn default_aws_region() -> String {
     "us-east-1".to_string()
 }
 fn default_ses_from_email() -> String {
-    "mail@philipithomas.com".to_string()
+    "Philip I. Thomas <mail@philipithomas.com>".to_string()
 }
 fn default_site_url() -> String {
     "http://localhost:3000".to_string()

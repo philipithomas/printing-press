@@ -12,7 +12,7 @@ pub fn render_confirmation(
         code => code,
         magic_link => magic_link,
         site_url => site_url,
-        site_title => "Philip I. Thomas",
+        site_title => "philipithomas.com",
         current_year => chrono::Utc::now().format("%Y").to_string(),
     })?;
     Ok(result)
@@ -31,7 +31,7 @@ pub fn render_newsletter(
         content => content,
         unsubscribe_url => unsubscribe_url,
         site_url => site_url,
-        site_title => "Philip I. Thomas",
+        site_title => "philipithomas.com",
         newsletter => newsletter.unwrap_or(""),
         current_year => chrono::Utc::now().format("%Y").to_string(),
     })?;
