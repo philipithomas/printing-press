@@ -20,7 +20,7 @@ pub fn resolve_env(env_str: &str) -> anyhow::Result<EnvConfig> {
         }),
         "production" | "prd" => Ok(EnvConfig {
             name: "production",
-            server_url: "https://printing-press.philipithomas.com",
+            server_url: "https://printing-press.contraption.co",
             website_url: "https://philipithomas.com",
             api_key_source: ApiKeySource::OnePassword("printing-press"),
         }),
