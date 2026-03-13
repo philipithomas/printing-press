@@ -30,7 +30,7 @@ pub async fn create_and_send_login(
 
     // Send confirmation email
     let magic_link = format!(
-        "{}/api/v1/subscribers/verify?token={}",
+        "{}/auth/verify?token={}",
         state.config.site_url, magic_token
     );
 
