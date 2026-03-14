@@ -187,17 +187,22 @@ pub async fn send_one(
 ) -> Result<Json<SendOneResponse>, AppError> {
     let subscriber = Subscriber::find_by_email(&state.pool, &req.email).await?;
 
-    // Build unsubscribe URL — only if subscriber exists
-    let (unsubscribe_url, email_send) = if let Some(ref sub) = subscriber {
+    // Build unsubscribe URLs — only if subscriber exists
+    let (unsubscribe_url, unsubscribe_post_url, email_send) = if let Some(ref sub) = subscriber {
         let es = EmailSend::create(&state.pool, sub.id, &req.post_slug).await?;
         let url = format!(
             "{}/unsubscribe?token={}",
             state.config.site_url, es.unsubscribe_token
         );
-        (url, Some(es))
+        let post_url = format!(
+            "{}/api/v1/unsubscribe/{}",
+            state.config.public_url, es.unsubscribe_token
+        );
+        (url, post_url, Some(es))
     } else {
         let url = format!("{}/unsubscribe", state.config.site_url);
-        (url, None)
+        let post_url = format!("{}/api/v1/unsubscribe", state.config.public_url);
+        (url, post_url, None)
     };
 
     let html = crate::templates::render_newsletter(
@@ -210,7 +215,7 @@ pub async fn send_one(
 
     match state
         .email_service
-        .send_newsletter(&req.email, &req.subject, &html, &unsubscribe_url)
+        .send_newsletter(&req.email, &req.subject, &html, &unsubscribe_url, &unsubscribe_post_url)
         .await
     {
         Ok(()) => {

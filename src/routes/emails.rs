@@ -40,10 +40,14 @@ pub async fn send_email(
     // Create email_send record
     let email_send = EmailSend::create(&state.pool, subscriber.id, &req.post_slug).await?;
 
-    // Build unsubscribe URL
+    // Build unsubscribe URLs
     let unsubscribe_url = format!(
         "{}/unsubscribe?token={}",
         state.config.site_url, email_send.unsubscribe_token
+    );
+    let unsubscribe_post_url = format!(
+        "{}/api/v1/unsubscribe/{}",
+        state.config.public_url, email_send.unsubscribe_token
     );
 
     // Wrap content in newsletter template
@@ -58,7 +62,7 @@ pub async fn send_email(
     // Send via email service
     match state
         .email_service
-        .send_newsletter(&subscriber.email, &req.subject, &html, &unsubscribe_url)
+        .send_newsletter(&subscriber.email, &req.subject, &html, &unsubscribe_url, &unsubscribe_post_url)
         .await
     {
         Ok(()) => Ok(Json(email_send)),

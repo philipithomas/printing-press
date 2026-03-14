@@ -25,6 +25,8 @@ pub struct Config {
     pub smtp_port: u16,
     #[serde(default = "default_ses_rate_per_second")]
     pub ses_rate_per_second: u32,
+    #[serde(default = "default_public_url")]
+    pub public_url: String,
 }
 
 fn default_database_url() -> String {
@@ -59,6 +61,9 @@ fn default_smtp_port() -> u16 {
 }
 fn default_ses_rate_per_second() -> u32 {
     14
+}
+fn default_public_url() -> String {
+    "http://localhost:8080".to_string()
 }
 
 impl Config {

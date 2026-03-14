@@ -167,6 +167,7 @@ fn build_newsletter_message(
     subject: &str,
     html_body: &str,
     unsubscribe_url: &str,
+    unsubscribe_post_url: &str,
 ) -> Result<lettre::Message, Box<dyn std::error::Error + Send + Sync>> {
     use lettre::message::header::ContentType;
 
@@ -174,7 +175,10 @@ fn build_newsletter_message(
         .from(from.parse()?)
         .to(to.parse()?)
         .subject(subject)
-        .header(ListUnsubscribeHeader(format!("<{}>", unsubscribe_url)))
+        .header(ListUnsubscribeHeader(format!(
+            "<{}>, <{}>",
+            unsubscribe_post_url, unsubscribe_url
+        )))
         .header(ListUnsubscribePostHeader)
         .header(ContentType::TEXT_HTML)
         .body(html_body.to_string())?;
@@ -230,9 +234,16 @@ impl EmailService {
         subject: &str,
         html_body: &str,
         unsubscribe_url: &str,
+        unsubscribe_post_url: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let message =
-            build_newsletter_message(to, &self.from_email, subject, html_body, unsubscribe_url)?;
+        let message = build_newsletter_message(
+            to,
+            &self.from_email,
+            subject,
+            html_body,
+            unsubscribe_url,
+            unsubscribe_post_url,
+        )?;
         match self.backend.as_ref() {
             EmailBackend::Ses(ses) => {
                 ses.send_raw(&message).await?;

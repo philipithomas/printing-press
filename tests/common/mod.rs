@@ -39,6 +39,7 @@ impl TestApp {
             smtp_host: "localhost".to_string(),
             smtp_port: 1025,
             ses_rate_per_second: 14,
+            public_url: "http://localhost:8080".to_string(),
         };
 
         let state = AppState::new(pool.clone(), config).await;

@@ -1,4 +1,4 @@
-use printing_press::{config::Config, db, services::queue_worker, state::AppState};
+use printing_press::{config::Config, db, services::{queue_worker, suppression_sync}, state::AppState};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
@@ -22,8 +22,16 @@ async fn main() -> anyhow::Result<()> {
     let worker_pool = state.pool.clone();
     let worker_email = state.email_service.clone();
     let worker_config = state.config.clone();
+    let worker_mx = state.mx_validator.clone();
     tokio::spawn(async move {
-        queue_worker::run(worker_pool, worker_email, worker_config).await;
+        queue_worker::run(worker_pool, worker_email, worker_config, worker_mx).await;
+    });
+
+    // Spawn SES suppression sync
+    let sync_pool = state.pool.clone();
+    let sync_config = state.config.clone();
+    tokio::spawn(async move {
+        suppression_sync::run(sync_pool, sync_config).await;
     });
 
     let addr = format!("{}:{}", config.host, config.port);

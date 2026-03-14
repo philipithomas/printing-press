@@ -21,6 +21,7 @@ mod verify;
         subscribers::unsubscribe_subscriber,
         verify::verify,
         unsubscribe::unsubscribe_by_token,
+        unsubscribe::one_click_unsubscribe,
         unsubscribe::get_preferences,
         unsubscribe::update_preferences,
         unsubscribe::delete_account,

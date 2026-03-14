@@ -15,7 +15,10 @@ use crate::state::AppState;
 
 pub fn public_routes() -> Router<AppState> {
     Router::new()
-        .route("/api/v1/unsubscribe/{token}", get(unsubscribe_by_token))
+        .route(
+            "/api/v1/unsubscribe/{token}",
+            get(unsubscribe_by_token).post(one_click_unsubscribe),
+        )
         .route(
             "/api/v1/unsubscribe/{token}/preferences",
             get(get_preferences).patch(update_preferences),
@@ -150,6 +153,54 @@ pub async fn update_preferences(
         subscribed_workshop: req.subscribed_workshop,
     };
     Subscriber::update(&state.pool, subscriber.uuid, &update).await?;
+
+    Ok(Json(SuccessResponse { success: true }))
+}
+
+// --- RFC 8058 one-click unsubscribe POST ---
+
+/// Maps a newsletter name to an UpdateSubscriberRequest that unsubscribes from that newsletter.
+fn unsubscribe_request_for_newsletter(
+    newsletter: Option<&str>,
+) -> crate::models::subscriber::UpdateSubscriberRequest {
+    let (postcard, contraption, workshop) = match newsletter {
+        Some("postcard") => (Some(false), None, None),
+        Some("contraption") => (None, Some(false), None),
+        Some("workshop") => (None, None, Some(false)),
+        _ => (Some(false), Some(false), Some(false)),
+    };
+    crate::models::subscriber::UpdateSubscriberRequest {
+        name: None,
+        subscribed_postcard: postcard,
+        subscribed_contraption: contraption,
+        subscribed_workshop: workshop,
+    }
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/unsubscribe/{token}",
+    params(("token" = Uuid, Path, description = "Unsubscribe token from email")),
+    responses(
+        (status = 200, description = "Unsubscribed via one-click", body = SuccessResponse),
+        (status = 404, description = "Invalid token"),
+    )
+)]
+pub async fn one_click_unsubscribe(
+    State(state): State<AppState>,
+    Path(token): Path<Uuid>,
+) -> Result<Json<SuccessResponse>, AppError> {
+    let email_send = EmailSend::find_by_unsubscribe_token(&state.pool, token)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    let subscriber = Subscriber::find_by_id(&state.pool, email_send.subscriber_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    let update = unsubscribe_request_for_newsletter(email_send.newsletter.as_deref());
+    Subscriber::update(&state.pool, subscriber.uuid, &update).await?;
+    EmailSend::mark_unsubscribed(&state.pool, email_send.id).await?;
 
     Ok(Json(SuccessResponse { success: true }))
 }

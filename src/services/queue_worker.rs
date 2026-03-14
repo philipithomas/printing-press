@@ -5,6 +5,8 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::config::Config;
+use crate::models::email_suppression::EmailSuppression;
+use crate::services::dns::MxValidator;
 use crate::services::email_service::EmailService;
 
 const MAX_ATTEMPTS: i32 = 5;
@@ -24,11 +26,11 @@ struct QueuedEmail {
     email: String,
 }
 
-pub async fn run(pool: PgPool, email_service: EmailService, config: Config) {
+pub async fn run(pool: PgPool, email_service: EmailService, config: Config, mx_validator: MxValidator) {
     let mut interval = tokio::time::interval(Duration::from_secs(1));
     loop {
         interval.tick().await;
-        if let Err(e) = process_batch(&pool, &email_service, &config).await {
+        if let Err(e) = process_batch(&pool, &email_service, &config, &mx_validator).await {
             tracing::error!("Queue worker error: {}", e);
         }
     }
@@ -38,6 +40,7 @@ async fn process_batch(
     pool: &PgPool,
     email_service: &EmailService,
     config: &Config,
+    mx_validator: &MxValidator,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let batch = fetch_pending(pool, config.ses_rate_per_second as i64).await?;
 
@@ -49,6 +52,63 @@ async fn process_batch(
     let delay = Duration::from_secs_f64(1.0 / config.ses_rate_per_second as f64);
 
     for queued in &batch {
+        // Suppression check
+        match EmailSuppression::is_suppressed(pool, &queued.email).await {
+            Ok(true) => {
+                tracing::info!(
+                    "Queue item {} to {} suppressed (bounce/complaint)",
+                    queued.id,
+                    queued.email
+                );
+                mark_permanent_failure(
+                    pool,
+                    queued.id,
+                    "Recipient is suppressed (bounce/complaint)",
+                )
+                .await?;
+                continue;
+            }
+            Err(e) => {
+                tracing::error!("Suppression check error for {}: {}", queued.email, e);
+                // Fail open — don't block on suppression check errors
+            }
+            Ok(false) => {}
+        }
+
+        // MX validation
+        match mx_validator.has_mx_records(&queued.email).await {
+            Ok(false) => {
+                tracing::info!(
+                    "Queue item {} to {} has no MX records",
+                    queued.id,
+                    queued.email
+                );
+                mark_permanent_failure(
+                    pool,
+                    queued.id,
+                    "No MX records for recipient domain",
+                )
+                .await?;
+                continue;
+            }
+            Err(e) => {
+                tracing::warn!("DNS lookup error for {}: {}", queued.email, e);
+                let backoff = next_attempt_delay(queued.attempts + 1);
+                if queued.attempts + 1 >= MAX_ATTEMPTS {
+                    mark_permanent_failure(
+                        pool,
+                        queued.id,
+                        &format!("DNS lookup failed after retries: {}", e),
+                    )
+                    .await?;
+                } else {
+                    mark_transient_failure(pool, queued.id, backoff).await?;
+                }
+                continue;
+            }
+            Ok(true) => {}
+        }
+
         let subject = match &queued.subject {
             Some(s) => s,
             None => {
@@ -68,6 +128,10 @@ async fn process_batch(
             "{}/unsubscribe?token={}",
             config.site_url, queued.unsubscribe_token
         );
+        let unsubscribe_post_url = format!(
+            "{}/api/v1/unsubscribe/{}",
+            config.public_url, queued.unsubscribe_token
+        );
 
         let html = match crate::templates::render_newsletter(
             html_content,
@@ -84,7 +148,7 @@ async fn process_batch(
         };
 
         match email_service
-            .send_newsletter(&queued.email, subject, &html, &unsubscribe_url)
+            .send_newsletter(&queued.email, subject, &html, &unsubscribe_url, &unsubscribe_post_url)
             .await
         {
             Ok(()) => {
