@@ -1,6 +1,9 @@
 use figment::{Figment, providers::Env};
 use serde::Deserialize;
 
+/// Base URL for the production website, used to resolve relative links in email content.
+pub const SITE_BASE_URL: &str = "https://www.philipithomas.com";
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     #[serde(default = "default_database_url")]

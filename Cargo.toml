@@ -42,6 +42,7 @@ thiserror = "2"
 anyhow = "1"
 lettre = { version = "0.11", default-features = false, features = ["tokio1-rustls-tls", "smtp-transport", "builder"] }
 clap = { version = "4", features = ["derive"] }
+regex = "1"
 dialoguer = "0.11"
 
 [dev-dependencies]
