@@ -8,12 +8,31 @@ pub struct CreateResult {
     pub is_new: bool,
 }
 
+/// Validate email has the form `local@domain.tld` with non-empty parts and at least one dot in domain.
+fn is_valid_email(email: &str) -> bool {
+    let Some((local, domain)) = email.split_once('@') else {
+        return false;
+    };
+    if local.is_empty() || domain.is_empty() {
+        return false;
+    }
+    // Domain must have at least one dot (i.e., a TLD)
+    let Some((host, tld)) = domain.rsplit_once('.') else {
+        return false;
+    };
+    if host.is_empty() || tld.len() < 2 {
+        return false;
+    }
+    // No spaces allowed
+    !email.contains(' ')
+}
+
 pub async fn create_or_retrieve(
     state: &AppState,
     req: &CreateSubscriberRequest,
 ) -> Result<CreateResult, AppError> {
     let email = req.email.trim().to_lowercase();
-    if email.is_empty() || !email.contains('@') {
+    if !is_valid_email(&email) {
         tracing::warn!(email = %req.email, "Invalid email address rejected");
         return Err(AppError::BadRequest("Invalid email address".to_string()));
     }
@@ -52,8 +71,13 @@ pub async fn create_or_retrieve(
             if let Err(e) = login_service::create_and_send_login(state, &existing).await {
                 tracing::error!("Failed to resend confirmation email to {}: {}", email, e);
             }
+        } else if !req.google_verified {
+            tracing::info!(email = %email, "Existing confirmed subscriber, sending sign-in code");
+            if let Err(e) = login_service::create_and_send_login(state, &existing).await {
+                tracing::error!("Failed to send sign-in email to {}: {}", email, e);
+            }
         } else {
-            tracing::info!(email = %email, "Existing confirmed subscriber returned");
+            tracing::info!(email = %email, "Existing confirmed subscriber returned (Google verified)");
         }
 
         return Ok(CreateResult {

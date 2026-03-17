@@ -14,6 +14,8 @@ pub fn routes() -> Router<AppState> {
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct VerifyRequest {
     pub token: String,
+    #[serde(default)]
+    pub email: Option<String>,
 }
 
 #[utoipa::path(
@@ -30,6 +32,7 @@ pub async fn verify(
     State(state): State<AppState>,
     Json(req): Json<VerifyRequest>,
 ) -> Result<Json<Subscriber>, AppError> {
-    let subscriber = login_service::verify_token(&state, &req.token).await?;
+    let subscriber =
+        login_service::verify_token(&state, &req.token, req.email.as_deref()).await?;
     Ok(Json(subscriber))
 }

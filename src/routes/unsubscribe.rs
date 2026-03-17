@@ -2,7 +2,7 @@ use axum::{
     Json, Router,
     extract::{Path, State},
     response::Redirect,
-    routing::{delete, get},
+    routing::get,
 };
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -23,10 +23,7 @@ pub fn public_routes() -> Router<AppState> {
             "/api/v1/unsubscribe/{token}/preferences",
             get(get_preferences).patch(update_preferences),
         )
-        .route(
-            "/api/v1/unsubscribe/{token}/account",
-            delete(delete_account),
-        )
+        // Account deletion requires JWT auth — use DELETE /api/v1/subscribers/{uuid} instead
 }
 
 pub fn authenticated_routes() -> Router<AppState> {
@@ -211,29 +208,3 @@ pub async fn one_click_unsubscribe(
     Ok(Json(SuccessResponse { success: true }))
 }
 
-// --- Delete account ---
-
-#[utoipa::path(
-    delete,
-    path = "/api/v1/unsubscribe/{token}/account",
-    params(("token" = Uuid, Path, description = "Unsubscribe token from email")),
-    responses(
-        (status = 200, description = "Account deleted", body = SuccessResponse),
-        (status = 404, description = "Invalid token"),
-    )
-)]
-pub async fn delete_account(
-    State(state): State<AppState>,
-    Path(token): Path<Uuid>,
-) -> Result<Json<SuccessResponse>, AppError> {
-    let email_send = EmailSend::find_by_unsubscribe_token(&state.pool, token)
-        .await?
-        .ok_or(AppError::NotFound)?;
-
-    let subscriber = Subscriber::find_by_id(&state.pool, email_send.subscriber_id).await?;
-    let email_for_log = subscriber.as_ref().map_or("unknown".to_string(), |s| s.email.clone());
-    Subscriber::delete_with_data(&state.pool, email_send.subscriber_id).await?;
-    tracing::info!(email = %email_for_log, "Account deleted via unsubscribe token");
-
-    Ok(Json(SuccessResponse { success: true }))
-}

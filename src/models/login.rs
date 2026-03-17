@@ -13,7 +13,11 @@ pub struct Login {
     pub verified_at: Option<DateTime<Utc>>,
     pub expired_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
+    pub attempts: i32,
+    pub locked_at: Option<DateTime<Utc>>,
 }
+
+const MAX_VERIFICATION_ATTEMPTS: i32 = 5;
 
 impl Login {
     pub async fn create(
@@ -39,16 +43,46 @@ impl Login {
     pub async fn find_valid_by_token(
         pool: &PgPool,
         token: &str,
+        token_type: &str,
     ) -> Result<Option<Self>, sqlx::Error> {
         sqlx::query_as::<_, Self>(
             r#"SELECT * FROM logins
                WHERE token = $1
+               AND token_type = $2
                AND verified_at IS NULL
+               AND locked_at IS NULL
                AND expired_at > NOW()"#,
         )
         .bind(token)
+        .bind(token_type)
         .fetch_optional(pool)
         .await
+    }
+
+    /// Increment the attempt counter for all unexpired code logins for a subscriber.
+    /// Locks the login if attempts exceed MAX_VERIFICATION_ATTEMPTS.
+    pub async fn increment_attempts_for_subscriber(
+        pool: &PgPool,
+        subscriber_id: i64,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query(
+            r#"UPDATE logins
+               SET attempts = attempts + 1,
+                   locked_at = CASE
+                       WHEN attempts + 1 >= $2 THEN NOW()
+                       ELSE locked_at
+                   END
+               WHERE subscriber_id = $1
+               AND token_type = 'code'
+               AND verified_at IS NULL
+               AND locked_at IS NULL
+               AND expired_at > NOW()"#,
+        )
+        .bind(subscriber_id)
+        .bind(MAX_VERIFICATION_ATTEMPTS)
+        .execute(pool)
+        .await?;
+        Ok(())
     }
 
     pub async fn mark_verified(pool: &PgPool, id: i64) -> Result<Self, sqlx::Error> {

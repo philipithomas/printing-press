@@ -28,11 +28,13 @@ pub async fn require_api_key(
 }
 
 fn constant_time_eq(a: &str, b: &str) -> bool {
-    if a.len() != b.len() {
-        return false;
+    // Pad both to the same length to avoid leaking length information via early return.
+    let max_len = a.len().max(b.len()).max(1);
+    let a_bytes: Vec<u8> = a.bytes().chain(std::iter::repeat(0u8)).take(max_len).collect();
+    let b_bytes: Vec<u8> = b.bytes().chain(std::iter::repeat(0u8)).take(max_len).collect();
+    let mut acc = (a.len() ^ b.len()) as u8;
+    for (x, y) in a_bytes.iter().zip(b_bytes.iter()) {
+        acc |= x ^ y;
     }
-    a.bytes()
-        .zip(b.bytes())
-        .fold(0u8, |acc, (x, y)| acc | (x ^ y))
-        == 0
+    acc == 0
 }

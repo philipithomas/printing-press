@@ -1,14 +1,22 @@
 use axum::{
     Json, Router,
     extract::{Path, State},
-    routing::{get, patch, post},
+    routing::{delete, get, patch, post},
 };
 use uuid::Uuid;
+
+use serde::Serialize;
+use utoipa::ToSchema;
 
 use crate::error::AppError;
 use crate::models::subscriber::{CreateSubscriberRequest, Subscriber, UpdateSubscriberRequest};
 use crate::services::subscriber_service;
 use crate::state::AppState;
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct DeleteResponse {
+    pub success: bool,
+}
 
 pub fn routes() -> Router<AppState> {
     Router::new()
@@ -19,6 +27,7 @@ pub fn routes() -> Router<AppState> {
             "/subscribers/{uuid}/unsubscribe",
             post(unsubscribe_subscriber),
         )
+        .route("/subscribers/{uuid}", delete(delete_subscriber))
 }
 
 #[utoipa::path(
@@ -101,4 +110,26 @@ pub async fn unsubscribe_subscriber(
     let updated = Subscriber::unsubscribe_all(&state.pool, subscriber.id).await?;
     tracing::info!(email = %updated.email, "Subscriber unsubscribed from all newsletters");
     Ok(Json(updated))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/v1/subscribers/{uuid}",
+    params(("uuid" = Uuid, Path, description = "Subscriber UUID")),
+    responses(
+        (status = 200, description = "Subscriber deleted", body = DeleteResponse),
+        (status = 404, description = "Not found"),
+        (status = 401, description = "Unauthorized"),
+    )
+)]
+pub async fn delete_subscriber(
+    State(state): State<AppState>,
+    Path(uuid): Path<Uuid>,
+) -> Result<Json<DeleteResponse>, AppError> {
+    let subscriber = Subscriber::find_by_uuid(&state.pool, uuid)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    Subscriber::delete_with_data(&state.pool, subscriber.id).await?;
+    tracing::info!(subscriber_uuid = %uuid, "Subscriber account deleted via authenticated API");
+    Ok(Json(DeleteResponse { success: true }))
 }

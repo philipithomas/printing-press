@@ -1,4 +1,5 @@
-use axum::{Router, middleware};
+use axum::{Router, http::HeaderValue, middleware};
+use tower_http::cors::{AllowOrigin, CorsLayer};
 use tower_http::trace::TraceLayer;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -20,12 +21,12 @@ mod verify;
         subscribers::get_subscriber,
         subscribers::update_subscriber,
         subscribers::unsubscribe_subscriber,
+        subscribers::delete_subscriber,
         verify::verify,
         unsubscribe::unsubscribe_by_token,
         unsubscribe::one_click_unsubscribe,
         unsubscribe::get_preferences,
         unsubscribe::update_preferences,
-        unsubscribe::delete_account,
         emails::send_email,
         publish::validate,
         publish::send,
@@ -47,6 +48,7 @@ mod verify;
         publish::SendOneResponse,
         unsubscribe::PreferencesResponse,
         unsubscribe::UpdatePreferencesRequest,
+        subscribers::DeleteResponse,
         unsubscribe::SuccessResponse,
     ))
 )]
@@ -64,11 +66,34 @@ pub fn router(state: AppState) -> Router {
             crate::auth::require_api_key,
         ));
 
-    Router::new()
+    let mut app = Router::new()
         .merge(health::routes())
         .merge(unsubscribe::public_routes())
-        .nest("/api/v1", api_routes)
-        .merge(SwaggerUi::new("/docs").url("/openapi.json", ApiDoc::openapi()))
+        .nest("/api/v1", api_routes);
+
+    // Only expose Swagger UI in development (not on production public_url)
+    if state.config.public_url.contains("localhost") {
+        app = app.merge(SwaggerUi::new("/docs").url("/openapi.json", ApiDoc::openapi()));
+    }
+
+    let cors = CorsLayer::new()
+        .allow_origin(AllowOrigin::list([
+            HeaderValue::from_static("https://philipithomas.com"),
+            HeaderValue::from_static("https://www.philipithomas.com"),
+            HeaderValue::from_static("http://localhost:3000"),
+        ]))
+        .allow_methods([
+            axum::http::Method::GET,
+            axum::http::Method::POST,
+            axum::http::Method::PATCH,
+            axum::http::Method::DELETE,
+        ])
+        .allow_headers([
+            axum::http::header::CONTENT_TYPE,
+            axum::http::header::HeaderName::from_static("x-api-key"),
+        ]);
+
+    app.layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }

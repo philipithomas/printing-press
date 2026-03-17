@@ -54,10 +54,37 @@ pub async fn create_and_send_login(
     Ok((code_login, magic_login))
 }
 
-pub async fn verify_token(state: &AppState, token: &str) -> Result<Subscriber, AppError> {
-    let login = Login::find_valid_by_token(&state.pool, token)
-        .await?
-        .ok_or(AppError::BadRequest("Invalid or expired token".to_string()))?;
+pub async fn verify_token(
+    state: &AppState,
+    token: &str,
+    email: Option<&str>,
+) -> Result<Subscriber, AppError> {
+    // Determine token type: 6-digit codes are "code", everything else is "magic_link"
+    let token_type = if token.len() == 6 && token.chars().all(|c| c.is_ascii_digit()) {
+        "code"
+    } else {
+        "magic_link"
+    };
+
+    let login = Login::find_valid_by_token(&state.pool, token, token_type).await?;
+
+    let login = match login {
+        Some(l) => l,
+        None => {
+            // On failed code verification, increment attempt counter for this subscriber
+            if token_type == "code"
+                && let Some(email) = email
+                && let Ok(Some(subscriber)) =
+                    Subscriber::find_by_email(&state.pool, email).await
+            {
+                let _ =
+                    Login::increment_attempts_for_subscriber(&state.pool, subscriber.id).await;
+            }
+            return Err(AppError::BadRequest(
+                "Invalid or expired token".to_string(),
+            ));
+        }
+    };
 
     // Check if already confirmed (to avoid duplicate notifications on re-verify)
     let existing = Subscriber::find_by_id(&state.pool, login.subscriber_id).await?;
