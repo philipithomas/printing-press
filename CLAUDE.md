@@ -41,4 +41,4 @@ Mailpit web UI at http://localhost:8025 for previewing emails sent locally.
 
 ## Maintaining this file
 
-When making major changes (new features, architectural changes, new endpoints, new conventions), update this CLAUDE.md to reflect them. This file is the primary onboarding document for future sessions.
+When making major changes (new features, architectural changes, new endpoints, new conventions), update this CLAUDE.md and README.md to reflect them. This file is the primary onboarding document for future sessions; README.md is the primary onboarding document for humans.

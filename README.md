@@ -44,19 +44,10 @@ cargo install --path .
 
 This installs both the `printing-press` server and the `pp` CLI.
 
-### Login
+### Authentication
 
-Store an encrypted API key for an environment:
-
-```bash
-# Development (default)
-pp login
-
-# Production
-pp -e prd login
-```
-
-Keys are encrypted with AES-256-GCM (PBKDF2 key derivation) and stored in `~/.printing-press/`.
+- **Development**: Uses hardcoded API key (`dev-api-key`), no setup needed.
+- **Production**: Retrieves API key from 1Password CLI (`op item get printing-press --field M2M_API_KEY`). Requires [1Password CLI](https://developer.1password.com/docs/cli/) to be installed and authenticated.
 
 ### Publish
 
@@ -82,10 +73,10 @@ The publish command:
 
 ### Environments
 
-| Name | Server | Website | Key file |
-|------|--------|---------|----------|
-| `development` (default) | `http://localhost:8080` | `http://localhost:3000` | `~/.printing-press/dev.key` |
-| `prd` / `production` | `https://printing-press.contraption.co` | `https://philipithomas.com` | `~/.printing-press/prd.key` |
+| Name | Server | Website | API Key Source |
+|------|--------|---------|---------------|
+| `development` (default) | `http://localhost:8080` | `http://localhost:3000` | Hardcoded |
+| `prd` / `production` | `https://printing-press.contraption.co` | `https://philipithomas.com` | 1Password CLI |
 
 ## Email Delivery
 
