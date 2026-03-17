@@ -20,7 +20,7 @@ Mailpit web UI at http://localhost:8025 for previewing emails sent locally.
 - **Queue**: Postgres-backed email queue (`email_sends` table) with background tokio worker, rate limiting, and exponential backoff retries
 - **Auth**: M2M API key (`x-api-key` header) for most endpoints; token-based auth for unsubscribe endpoints
 - **Config**: Figment with env var overrides
-- **CLI**: `pp` binary for orchestrating newsletter sends (separate binary in `src/cli/`)
+- **CLI**: `press` binary for orchestrating newsletter sends (separate binary in `src/cli/`)
 
 ## Key paths
 
@@ -28,7 +28,7 @@ Mailpit web UI at http://localhost:8025 for previewing emails sent locally.
 - `src/models/` — Database models and queries (subscriber, email_send, login)
 - `src/services/` — Business logic (email_service, queue_worker, login, subscriber)
 - `src/templates/` — Email HTML templates (newsletter, confirmation)
-- `src/cli/` — CLI tool (`pp` binary): commands, client, keystore, config
+- `src/cli/` — CLI tool (`press` binary): commands, client, keystore, config
 - `migrations/` — SQL migrations (run on startup)
 - `tests/` — Integration tests with testcontainers
 

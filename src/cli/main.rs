@@ -5,7 +5,7 @@ mod commands;
 mod config;
 
 #[derive(Parser)]
-#[command(name = "pp", about = "Printing Press CLI", version)]
+#[command(name = "press", about = "Printing Press CLI", version)]
 struct Cli {
     /// Environment: development (default), prd/production
     #[arg(short, long, default_value = "development")]

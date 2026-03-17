@@ -12,7 +12,7 @@ name = "printing-press"
 path = "src/main.rs"
 
 [[bin]]
-name = "pp"
+name = "press"
 path = "src/cli/main.rs"
 
 [dependencies]

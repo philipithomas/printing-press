@@ -8,7 +8,7 @@ Subscription and email backend for [philipithomas.com](https://philipithomas.com
 - Email verification via 6-digit code + magic link
 - Newsletter subscription preferences (Postcard, Contraption, Workshop)
 - Bulk email sending via Postgres-backed queue + AWS SES
-- CLI tool (`pp`) for triggering newsletter sends
+- CLI tool (`press`) for triggering newsletter sends
 - Token-based unsubscribe with per-newsletter preference management
 - Local email preview via Mailpit
 - OpenAPI documentation with Swagger UI
@@ -32,9 +32,9 @@ open http://localhost:8080/docs
 open http://localhost:8025
 ```
 
-## CLI (`pp`)
+## CLI (`press`)
 
-The `pp` CLI orchestrates newsletter sends. It fetches post content from the website, validates with the server, and enqueues emails for background delivery.
+The `press` CLI orchestrates newsletter sends. It fetches post content from the website, validates with the server, and enqueues emails for background delivery.
 
 ### Install
 
@@ -42,7 +42,7 @@ The `pp` CLI orchestrates newsletter sends. It fetches post content from the web
 cargo install --path .
 ```
 
-This installs both the `printing-press` server and the `pp` CLI.
+This installs both the `printing-press` server and the `press` CLI.
 
 ### Authentication
 
@@ -53,16 +53,16 @@ This installs both the `printing-press` server and the `pp` CLI.
 
 ```bash
 # Test send to yourself
-pp publish my-post --to your@email.com
+press publish my-post --to your@email.com
 
 # Production test send
-pp -e prd publish my-post --to your@email.com
+press -e prd publish my-post --to your@email.com
 
 # Send to all subscribers
-pp -e prd publish my-post
+press -e prd publish my-post
 
 # Force send (if some subscribers already received it)
-pp -e prd publish my-post --force
+press -e prd publish my-post --force
 ```
 
 The publish command:
@@ -82,7 +82,7 @@ The publish command:
 
 Emails are sent via a Postgres-backed queue with a background worker:
 
-1. `pp publish` (or the `/api/v1/publish/send` endpoint) inserts rows into `email_sends` with `next_attempt_at = NOW()`
+1. `press publish` (or the `/api/v1/publish/send` endpoint) inserts rows into `email_sends` with `next_attempt_at = NOW()`
 2. The queue worker polls every second, sends emails at the configured rate limit, and marks rows as sent
 3. Failed sends retry with exponential backoff (30s, 60s, 120s, 240s, 480s), max 5 attempts
 4. Outgoing newsletter emails include `List-Unsubscribe` and `List-Unsubscribe-Post` headers for native one-click unsubscribe in Gmail/Apple Mail
