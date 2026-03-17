@@ -99,5 +99,6 @@ pub async fn unsubscribe_subscriber(
         .await?
         .ok_or(AppError::NotFound)?;
     let updated = Subscriber::unsubscribe_all(&state.pool, subscriber.id).await?;
+    tracing::info!(email = %updated.email, "Subscriber unsubscribed from all newsletters");
     Ok(Json(updated))
 }

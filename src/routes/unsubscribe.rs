@@ -153,6 +153,7 @@ pub async fn update_preferences(
         subscribed_workshop: req.subscribed_workshop,
     };
     Subscriber::update(&state.pool, subscriber.uuid, &update).await?;
+    tracing::info!(email = %subscriber.email, "Subscriber preferences updated via unsubscribe token");
 
     Ok(Json(SuccessResponse { success: true }))
 }
@@ -201,6 +202,11 @@ pub async fn one_click_unsubscribe(
     let update = unsubscribe_request_for_newsletter(email_send.newsletter.as_deref());
     Subscriber::update(&state.pool, subscriber.uuid, &update).await?;
     EmailSend::mark_unsubscribed(&state.pool, email_send.id).await?;
+    tracing::info!(
+        email = %subscriber.email,
+        newsletter = ?email_send.newsletter,
+        "One-click unsubscribe"
+    );
 
     Ok(Json(SuccessResponse { success: true }))
 }
@@ -224,7 +230,10 @@ pub async fn delete_account(
         .await?
         .ok_or(AppError::NotFound)?;
 
+    let subscriber = Subscriber::find_by_id(&state.pool, email_send.subscriber_id).await?;
+    let email_for_log = subscriber.as_ref().map_or("unknown".to_string(), |s| s.email.clone());
     Subscriber::delete_with_data(&state.pool, email_send.subscriber_id).await?;
+    tracing::info!(email = %email_for_log, "Account deleted via unsubscribe token");
 
     Ok(Json(SuccessResponse { success: true }))
 }

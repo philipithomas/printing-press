@@ -1,4 +1,5 @@
 use axum::{Router, middleware};
+use tower_http::trace::TraceLayer;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -68,5 +69,6 @@ pub fn router(state: AppState) -> Router {
         .merge(unsubscribe::public_routes())
         .nest("/api/v1", api_routes)
         .merge(SwaggerUi::new("/docs").url("/openapi.json", ApiDoc::openapi()))
+        .layer(TraceLayer::new_for_http())
         .with_state(state)
 }

@@ -16,7 +16,14 @@ pub async fn require_api_key(
         Some(key) if constant_time_eq(key, &state.config.m2m_api_key) => {
             Ok(next.run(request).await)
         }
-        _ => Err(StatusCode::UNAUTHORIZED),
+        _ => {
+            tracing::warn!(
+                method = %request.method(),
+                uri = %request.uri(),
+                "Unauthorized API request (missing or invalid x-api-key)"
+            );
+            Err(StatusCode::UNAUTHORIZED)
+        }
     }
 }
 

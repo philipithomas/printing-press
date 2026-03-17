@@ -14,6 +14,7 @@ pub async fn create_or_retrieve(
 ) -> Result<CreateResult, AppError> {
     let email = req.email.trim().to_lowercase();
     if email.is_empty() || !email.contains('@') {
+        tracing::warn!(email = %req.email, "Invalid email address rejected");
         return Err(AppError::BadRequest("Invalid email address".to_string()));
     }
 
@@ -22,6 +23,7 @@ pub async fn create_or_retrieve(
         // If Google verified and not yet confirmed, confirm now
         if req.google_verified && existing.confirmed_at.is_none() {
             let confirmed = Subscriber::confirm(&state.pool, existing.id).await?;
+            tracing::info!(email = %confirmed.email, "Subscriber confirmed via Google sign-in (existing)");
             if let Err(e) = state
                 .email_service
                 .send_new_subscriber_notification(
@@ -65,10 +67,12 @@ pub async fn create_or_retrieve(
         req.source.as_deref(),
     )
     .await?;
+    tracing::info!(email = %email, source = ?req.source, "New subscriber created");
 
     // If Google verified, confirm immediately
     if req.google_verified {
         let confirmed = Subscriber::confirm(&state.pool, subscriber.id).await?;
+        tracing::info!(email = %confirmed.email, "Subscriber confirmed via Google sign-in (new)");
         if let Err(e) = state
             .email_service
             .send_new_subscriber_notification(

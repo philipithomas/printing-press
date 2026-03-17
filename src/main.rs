@@ -12,8 +12,18 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     let config = Config::load()?;
+    tracing::info!(
+        email_backend = %config.email_backend,
+        from_email = %config.ses_from_email,
+        site_url = %config.site_url,
+        public_url = %config.public_url,
+        "Configuration loaded"
+    );
+
     let pool = db::connect(&config.database_url).await?;
+    tracing::info!("Database connected");
     db::migrate(&pool).await?;
+    tracing::info!("Migrations applied");
 
     let state = AppState::new(pool, config.clone()).await;
     let app = printing_press::routes::router(state.clone());

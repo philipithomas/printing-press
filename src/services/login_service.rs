@@ -45,6 +45,8 @@ pub async fn create_and_send_login(
         .await
         .map_err(|e| AppError::Internal(format!("Failed to send email: {}", e)))?;
 
+    tracing::info!(email = %subscriber.email, "Confirmation email sent");
+
     // Mark emails as sent
     let code_login = Login::mark_email_sent(&state.pool, code_login.id).await?;
     let magic_login = Login::mark_email_sent(&state.pool, magic_login.id).await?;
@@ -65,6 +67,12 @@ pub async fn verify_token(state: &AppState, token: &str) -> Result<Subscriber, A
 
     Login::mark_verified(&state.pool, login.id).await?;
     let subscriber = Subscriber::confirm(&state.pool, login.subscriber_id).await?;
+
+    if was_already_confirmed {
+        tracing::info!(email = %subscriber.email, "Returning subscriber signed in");
+    } else {
+        tracing::info!(email = %subscriber.email, "Subscriber confirmed via email verification");
+    }
 
     if !was_already_confirmed
         && let Err(e) = state
