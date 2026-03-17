@@ -50,6 +50,7 @@ pub fn render_new_subscriber(
         subscriber_source => subscriber_source,
         site_url => site_url,
         site_title => "philipithomas.com",
+        current_year => chrono::Utc::now().format("%Y").to_string(),
     })?;
     Ok(result)
 }
