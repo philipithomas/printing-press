@@ -22,6 +22,22 @@ pub async fn create_or_retrieve(
         // If Google verified and not yet confirmed, confirm now
         if req.google_verified && existing.confirmed_at.is_none() {
             let confirmed = Subscriber::confirm(&state.pool, existing.id).await?;
+            if let Err(e) = state
+                .email_service
+                .send_new_subscriber_notification(
+                    &confirmed.email,
+                    confirmed.name.as_deref(),
+                    confirmed.source.as_deref(),
+                    &state.config.site_url,
+                )
+                .await
+            {
+                tracing::error!(
+                    "Failed to send new subscriber notification for {}: {}",
+                    confirmed.email,
+                    e
+                );
+            }
             return Ok(CreateResult {
                 subscriber: confirmed,
                 is_new: false,
@@ -53,6 +69,22 @@ pub async fn create_or_retrieve(
     // If Google verified, confirm immediately
     if req.google_verified {
         let confirmed = Subscriber::confirm(&state.pool, subscriber.id).await?;
+        if let Err(e) = state
+            .email_service
+            .send_new_subscriber_notification(
+                &confirmed.email,
+                confirmed.name.as_deref(),
+                confirmed.source.as_deref(),
+                &state.config.site_url,
+            )
+            .await
+        {
+            tracing::error!(
+                "Failed to send new subscriber notification for {}: {}",
+                confirmed.email,
+                e
+            );
+        }
         return Ok(CreateResult {
             subscriber: confirmed,
             is_new: true,

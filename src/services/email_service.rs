@@ -267,4 +267,22 @@ impl EmailService {
         let html = crate::templates::render_confirmation(code, magic_link, site_url)?;
         self.send_email(to, "Your sign-in code", &html).await
     }
+
+    pub async fn send_new_subscriber_notification(
+        &self,
+        subscriber_email: &str,
+        subscriber_name: Option<&str>,
+        subscriber_source: Option<&str>,
+        site_url: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let html = crate::templates::render_new_subscriber(
+            subscriber_email,
+            subscriber_name,
+            subscriber_source,
+            site_url,
+        )?;
+        let subject = format!("New subscriber: {}", subscriber_email);
+        // Send to the same address configured as the from email
+        self.send_email(&self.from_email, &subject, &html).await
+    }
 }

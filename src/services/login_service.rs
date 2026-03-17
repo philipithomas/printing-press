@@ -57,8 +57,32 @@ pub async fn verify_token(state: &AppState, token: &str) -> Result<Subscriber, A
         .await?
         .ok_or(AppError::BadRequest("Invalid or expired token".to_string()))?;
 
+    // Check if already confirmed (to avoid duplicate notifications on re-verify)
+    let existing = Subscriber::find_by_id(&state.pool, login.subscriber_id).await?;
+    let was_already_confirmed = existing
+        .as_ref()
+        .is_some_and(|s| s.confirmed_at.is_some());
+
     Login::mark_verified(&state.pool, login.id).await?;
     let subscriber = Subscriber::confirm(&state.pool, login.subscriber_id).await?;
+
+    if !was_already_confirmed
+        && let Err(e) = state
+            .email_service
+            .send_new_subscriber_notification(
+                &subscriber.email,
+                subscriber.name.as_deref(),
+                subscriber.source.as_deref(),
+                &state.config.site_url,
+            )
+            .await
+    {
+        tracing::error!(
+            "Failed to send new subscriber notification for {}: {}",
+            subscriber.email,
+            e
+        );
+    }
 
     Ok(subscriber)
 }

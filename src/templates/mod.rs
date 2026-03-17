@@ -35,6 +35,25 @@ pub fn render_confirmation(
     Ok(result)
 }
 
+pub fn render_new_subscriber(
+    subscriber_email: &str,
+    subscriber_name: Option<&str>,
+    subscriber_source: Option<&str>,
+    site_url: &str,
+) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    let mut env = Environment::new();
+    env.add_template("new_subscriber", include_str!("new_subscriber.html"))?;
+    let tmpl = env.get_template("new_subscriber")?;
+    let result = tmpl.render(context! {
+        subscriber_email => subscriber_email,
+        subscriber_name => subscriber_name,
+        subscriber_source => subscriber_source,
+        site_url => site_url,
+        site_title => "philipithomas.com",
+    })?;
+    Ok(result)
+}
+
 pub fn render_newsletter(
     content: &str,
     unsubscribe_url: &str,
