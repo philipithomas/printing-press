@@ -38,3 +38,7 @@ Mailpit web UI at http://localhost:8025 for previewing emails sent locally.
 - `cargo clippy -- -D warnings` for linting
 - All SQL queries use sqlx::query_as (not compile-time macros, to avoid needing DB at build time)
 - Newsletter subscriber queries use `NOT EXISTS` subqueries (not `NOT IN`) for performance
+
+## Maintaining this file
+
+When making major changes (new features, architectural changes, new endpoints, new conventions), update this CLAUDE.md to reflect them. This file is the primary onboarding document for future sessions.
