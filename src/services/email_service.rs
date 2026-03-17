@@ -1,5 +1,7 @@
 use crate::config::Config;
 
+const FROM_NAME: &str = "Philip I. Thomas";
+
 enum EmailBackend {
     Ses(SesEmailSender),
     Smtp(SmtpEmailSender),
@@ -201,9 +203,14 @@ impl EmailService {
                 port: config.smtp_port,
             }),
         };
+        let from_email = if config.ses_from_email.contains('<') {
+            config.ses_from_email.clone()
+        } else {
+            format!("{} <{}>", FROM_NAME, config.ses_from_email)
+        };
         Self {
             backend: std::sync::Arc::new(backend),
-            from_email: config.ses_from_email.clone(),
+            from_email,
         }
     }
 
@@ -265,7 +272,8 @@ impl EmailService {
         site_url: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let html = crate::templates::render_confirmation(code, magic_link, site_url)?;
-        self.send_email(to, "Your sign-in code", &html).await
+        self.send_email(to, "Your sign-in code for philipithomas.com", &html)
+            .await
     }
 
     pub async fn send_new_subscriber_notification(
