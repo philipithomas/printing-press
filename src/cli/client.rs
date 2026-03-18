@@ -1,3 +1,4 @@
+use printing_press::models::subscriber::{ImportResult, ImportSubscriberEntry};
 use serde::{Deserialize, Serialize};
 
 use crate::config::EnvConfig;
@@ -197,6 +198,31 @@ impl PpClient {
                 error: "Unknown error".to_string(),
             });
             anyhow::bail!("Send failed ({}): {}", status, body.error);
+        }
+
+        Ok(resp.json().await?)
+    }
+
+    pub async fn import_subscribers(
+        &self,
+        entries: Vec<ImportSubscriberEntry>,
+    ) -> anyhow::Result<ImportResult> {
+        let url = format!("{}/api/v1/subscribers/import", self.server_url);
+        let resp = self
+            .client
+            .post(&url)
+            .header("x-api-key", &self.api_key)
+            .json(&serde_json::json!({ "subscribers": entries }))
+            .send()
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to reach server at {}: {}", url, e))?;
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body: ErrorResponse = resp.json().await.unwrap_or(ErrorResponse {
+                error: "Unknown error".to_string(),
+            });
+            anyhow::bail!("Import failed ({}): {}", status, body.error);
         }
 
         Ok(resp.json().await?)

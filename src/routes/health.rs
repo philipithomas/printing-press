@@ -10,7 +10,8 @@ pub fn routes() -> Router<AppState> {
 }
 
 async fn root() -> Html<&'static str> {
-    Html(r#"<!DOCTYPE html>
+    Html(
+        r#"<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
@@ -24,7 +25,8 @@ async fn root() -> Html<&'static str> {
 <body>
 <p style="font-size: 15px; color: #7E7A73;">Hello, you've reached the printing press.</p>
 </body>
-</html>"#)
+</html>"#,
+    )
 }
 
 #[utoipa::path(

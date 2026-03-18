@@ -26,7 +26,12 @@ struct QueuedEmail {
     email: String,
 }
 
-pub async fn run(pool: PgPool, email_service: EmailService, config: Config, mx_validator: MxValidator) {
+pub async fn run(
+    pool: PgPool,
+    email_service: EmailService,
+    config: Config,
+    mx_validator: MxValidator,
+) {
     let mut interval = tokio::time::interval(Duration::from_secs(1));
     loop {
         interval.tick().await;
@@ -83,12 +88,8 @@ async fn process_batch(
                     queued.id,
                     queued.email
                 );
-                mark_permanent_failure(
-                    pool,
-                    queued.id,
-                    "No MX records for recipient domain",
-                )
-                .await?;
+                mark_permanent_failure(pool, queued.id, "No MX records for recipient domain")
+                    .await?;
                 continue;
             }
             Err(e) => {
@@ -148,7 +149,13 @@ async fn process_batch(
         };
 
         match email_service
-            .send_newsletter(&queued.email, subject, &html, &unsubscribe_url, &unsubscribe_post_url)
+            .send_newsletter(
+                &queued.email,
+                subject,
+                &html,
+                &unsubscribe_url,
+                &unsubscribe_post_url,
+            )
             .await
         {
             Ok(()) => {

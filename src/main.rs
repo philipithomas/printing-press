@@ -1,4 +1,9 @@
-use printing_press::{config::Config, db, services::{queue_worker, suppression_sync}, state::AppState};
+use printing_press::{
+    config::Config,
+    db,
+    services::{queue_worker, suppression_sync},
+    state::AppState,
+};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]

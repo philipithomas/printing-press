@@ -8,6 +8,7 @@ use crate::state::AppState;
 
 mod emails;
 mod health;
+mod import;
 mod publish;
 mod stats;
 mod subscribers;
@@ -32,6 +33,7 @@ mod verify;
         publish::validate,
         publish::send,
         publish::send_one,
+        import::import_subscribers,
         stats::subscriber_count,
     ),
     components(schemas(
@@ -53,6 +55,9 @@ mod verify;
         subscribers::DeleteResponse,
         unsubscribe::SuccessResponse,
         stats::SubscriberCountResponse,
+        import::ImportRequest,
+        crate::models::subscriber::ImportSubscriberEntry,
+        crate::models::subscriber::ImportResult,
     ))
 )]
 struct ApiDoc;
@@ -64,6 +69,7 @@ pub fn router(state: AppState) -> Router {
         .merge(unsubscribe::authenticated_routes())
         .merge(emails::routes())
         .merge(publish::routes())
+        .merge(import::routes())
         .layer(middleware::from_fn_with_state(
             state.clone(),
             crate::auth::require_api_key,

@@ -23,7 +23,7 @@ pub fn public_routes() -> Router<AppState> {
             "/api/v1/unsubscribe/{token}/preferences",
             get(get_preferences).patch(update_preferences),
         )
-        // Account deletion requires JWT auth — use DELETE /api/v1/subscribers/{uuid} instead
+    // Account deletion requires JWT auth — use DELETE /api/v1/subscribers/{uuid} instead
 }
 
 pub fn authenticated_routes() -> Router<AppState> {
@@ -207,4 +207,3 @@ pub async fn one_click_unsubscribe(
 
     Ok(Json(SuccessResponse { success: true }))
 }
-

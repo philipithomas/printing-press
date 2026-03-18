@@ -36,7 +36,7 @@ pub fn read_api_key(env_config: &EnvConfig) -> anyhow::Result<String> {
         ApiKeySource::HardCoded(key) => Ok(key.to_string()),
         ApiKeySource::OnePassword(item) => {
             let output = std::process::Command::new("op")
-                .args(["item", "get", item, "--field", "M2M_API_KEY"])
+                .args(["item", "get", item, "--field", "M2M_API_KEY", "--reveal"])
                 .output()
                 .map_err(|e| {
                     anyhow::anyhow!("Failed to run `op` CLI. Is 1Password CLI installed? {}", e)

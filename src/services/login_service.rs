@@ -74,23 +74,17 @@ pub async fn verify_token(
             // On failed code verification, increment attempt counter for this subscriber
             if token_type == "code"
                 && let Some(email) = email
-                && let Ok(Some(subscriber)) =
-                    Subscriber::find_by_email(&state.pool, email).await
+                && let Ok(Some(subscriber)) = Subscriber::find_by_email(&state.pool, email).await
             {
-                let _ =
-                    Login::increment_attempts_for_subscriber(&state.pool, subscriber.id).await;
+                let _ = Login::increment_attempts_for_subscriber(&state.pool, subscriber.id).await;
             }
-            return Err(AppError::BadRequest(
-                "Invalid or expired token".to_string(),
-            ));
+            return Err(AppError::BadRequest("Invalid or expired token".to_string()));
         }
     };
 
     // Check if already confirmed (to avoid duplicate notifications on re-verify)
     let existing = Subscriber::find_by_id(&state.pool, login.subscriber_id).await?;
-    let was_already_confirmed = existing
-        .as_ref()
-        .is_some_and(|s| s.confirmed_at.is_some());
+    let was_already_confirmed = existing.as_ref().is_some_and(|s| s.confirmed_at.is_some());
 
     Login::mark_verified(&state.pool, login.id).await?;
     let subscriber = Subscriber::confirm(&state.pool, login.subscriber_id).await?;

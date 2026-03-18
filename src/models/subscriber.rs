@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+use tracing;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -40,6 +41,23 @@ pub struct UpdateSubscriberRequest {
     pub subscribed_contraption: Option<bool>,
     #[serde(default)]
     pub subscribed_workshop: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct ImportSubscriberEntry {
+    pub email: String,
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub source: Option<String>,
+    pub newsletters: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct ImportResult {
+    pub created: i64,
+    pub updated: i64,
+    pub total: i64,
 }
 
 /// Maps a newsletter name to the corresponding subscription column.
@@ -207,6 +225,74 @@ impl Subscriber {
         .fetch_one(pool)
         .await?;
         Ok(row.0)
+    }
+
+    pub async fn bulk_import(
+        pool: &PgPool,
+        entries: &[ImportSubscriberEntry],
+    ) -> Result<ImportResult, sqlx::Error> {
+        if entries.is_empty() {
+            return Ok(ImportResult {
+                created: 0,
+                updated: 0,
+                total: 0,
+            });
+        }
+
+        let emails: Vec<String> = entries.iter().map(|e| e.email.to_lowercase()).collect();
+        let names: Vec<Option<String>> = entries.iter().map(|e| e.name.clone()).collect();
+        let sources: Vec<Option<String>> = entries.iter().map(|e| e.source.clone()).collect();
+        let sub_postcard: Vec<bool> = entries
+            .iter()
+            .map(|e| e.newsletters.iter().any(|n| n == "postcard"))
+            .collect();
+        let sub_contraption: Vec<bool> = entries
+            .iter()
+            .map(|e| e.newsletters.iter().any(|n| n == "contraption"))
+            .collect();
+        let sub_workshop: Vec<bool> = entries
+            .iter()
+            .map(|e| e.newsletters.iter().any(|n| n == "workshop"))
+            .collect();
+
+        let rows: Vec<(bool,)> = sqlx::query_as(
+            r#"INSERT INTO subscribers (email, name, source, confirmed_at,
+                   subscribed_postcard, subscribed_contraption, subscribed_workshop)
+               SELECT * FROM unnest(
+                   $1::text[], $2::text[], $3::text[],
+                   array_fill(NOW()::timestamptz, ARRAY[$7::int]),
+                   $4::bool[], $5::bool[], $6::bool[]
+               )
+               ON CONFLICT (email) DO UPDATE SET
+                   subscribed_postcard = subscribers.subscribed_postcard OR EXCLUDED.subscribed_postcard,
+                   subscribed_contraption = subscribers.subscribed_contraption OR EXCLUDED.subscribed_contraption,
+                   subscribed_workshop = subscribers.subscribed_workshop OR EXCLUDED.subscribed_workshop,
+                   name = COALESCE(subscribers.name, EXCLUDED.name),
+                   source = COALESCE(subscribers.source, EXCLUDED.source),
+                   confirmed_at = COALESCE(subscribers.confirmed_at, NOW()),
+                   updated_at = NOW()
+               RETURNING (xmax = 0)"#,
+        )
+        .bind(&emails)
+        .bind(&names)
+        .bind(&sources)
+        .bind(&sub_postcard)
+        .bind(&sub_contraption)
+        .bind(&sub_workshop)
+        .bind(entries.len() as i32)
+        .fetch_all(pool)
+        .await?;
+
+        let created = rows.iter().filter(|(is_insert,)| *is_insert).count() as i64;
+        let updated = rows.len() as i64 - created;
+
+        tracing::info!(created, updated, total = rows.len(), "Bulk import complete");
+
+        Ok(ImportResult {
+            created,
+            updated,
+            total: rows.len() as i64,
+        })
     }
 
     pub async fn delete_with_data(pool: &PgPool, id: i64) -> Result<(), sqlx::Error> {

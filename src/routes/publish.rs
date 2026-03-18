@@ -185,25 +185,9 @@ pub async fn send_one(
     State(state): State<AppState>,
     Json(req): Json<SendOneRequest>,
 ) -> Result<Json<SendOneResponse>, AppError> {
-    let subscriber = Subscriber::find_by_email(&state.pool, &req.email).await?;
-
-    // Build unsubscribe URLs — only if subscriber exists
-    let (unsubscribe_url, unsubscribe_post_url, email_send) = if let Some(ref sub) = subscriber {
-        let es = EmailSend::create(&state.pool, sub.id, &req.post_slug).await?;
-        let url = format!(
-            "{}/unsubscribe?token={}",
-            state.config.site_url, es.unsubscribe_token
-        );
-        let post_url = format!(
-            "{}/api/v1/unsubscribe/{}",
-            state.config.public_url, es.unsubscribe_token
-        );
-        (url, post_url, Some(es))
-    } else {
-        let url = format!("{}/unsubscribe", state.config.site_url);
-        let post_url = format!("{}/api/v1/unsubscribe", state.config.public_url);
-        (url, post_url, None)
-    };
+    // Test sends don't create EmailSend records so they don't count toward "already sent"
+    let unsubscribe_url = format!("{}/unsubscribe", state.config.site_url);
+    let unsubscribe_post_url = format!("{}/api/v1/unsubscribe", state.config.public_url);
 
     let html = crate::templates::render_newsletter(
         &req.html_content,
@@ -215,35 +199,26 @@ pub async fn send_one(
 
     match state
         .email_service
-        .send_newsletter(&req.email, &req.subject, &html, &unsubscribe_url, &unsubscribe_post_url)
+        .send_newsletter(
+            &req.email,
+            &req.subject,
+            &html,
+            &unsubscribe_url,
+            &unsubscribe_post_url,
+        )
         .await
     {
-        Ok(()) => {
-            if let Some(es) = &email_send {
-                // Mark as sent immediately
-                sqlx::query("UPDATE email_sends SET sent_at = NOW() WHERE id = $1")
-                    .bind(es.id)
-                    .execute(&state.pool)
-                    .await?;
-            }
-            Ok(Json(SendOneResponse {
-                email: req.email,
-                post_slug: req.post_slug,
-                status: "sent".to_string(),
-                error: None,
-            }))
-        }
-        Err(e) => {
-            let error_msg = e.to_string();
-            if let Some(es) = &email_send {
-                let _ = EmailSend::record_error(&state.pool, es.id, &error_msg).await;
-            }
-            Ok(Json(SendOneResponse {
-                email: req.email,
-                post_slug: req.post_slug,
-                status: "error".to_string(),
-                error: Some(error_msg),
-            }))
-        }
+        Ok(()) => Ok(Json(SendOneResponse {
+            email: req.email,
+            post_slug: req.post_slug,
+            status: "sent".to_string(),
+            error: None,
+        })),
+        Err(e) => Ok(Json(SendOneResponse {
+            email: req.email,
+            post_slug: req.post_slug,
+            status: "error".to_string(),
+            error: Some(e.to_string()),
+        })),
     }
 }
