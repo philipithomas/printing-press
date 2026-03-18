@@ -17,6 +17,49 @@ pub fn resolve_relative_urls(html: &str) -> String {
     .into_owned()
 }
 
+/// Add inline styles to `<a>` tags so links in email content match the website's
+/// visual treatment: dark text with a newsletter-accent-colored underline.
+pub fn style_content_links(html: &str, newsletter: Option<&str>) -> String {
+    let accent = match newsletter {
+        Some("contraption") => "#2b4a3e",
+        Some("workshop") => "#6b4d3a",
+        Some("postcard") => "#2c3e6b",
+        _ => "#3B3834",
+    };
+    let style = format!(
+        "color: #3B3834; text-decoration: underline; text-decoration-color: {}; text-underline-offset: 2px;",
+        accent
+    );
+    let re = Regex::new(r#"<a ([^>]*?)>"#).unwrap();
+    re.replace_all(html, |caps: &regex::Captures| {
+        let attrs = &caps[1];
+        if attrs.contains("style=") {
+            caps[0].to_string()
+        } else {
+            format!(r#"<a style="{}" {}>"#, style, attrs)
+        }
+    })
+    .into_owned()
+}
+
+/// Add inline styles to `<img>` tags in email content so images are constrained
+/// to the content width and don't overflow in narrow reading panes.
+pub fn style_content_images(html: &str) -> String {
+    let re = Regex::new(r#"<img ([^>]*?)>"#).unwrap();
+    re.replace_all(html, |caps: &regex::Captures| {
+        let attrs = &caps[1];
+        if attrs.contains("style=") {
+            caps[0].to_string()
+        } else {
+            format!(
+                r#"<img style="max-width: 100%; height: auto; display: block;" {}>"#,
+                attrs
+            )
+        }
+    })
+    .into_owned()
+}
+
 pub fn render_confirmation(
     code: &str,
     magic_link: &str,
@@ -62,6 +105,8 @@ pub fn render_newsletter(
     newsletter: Option<&str>,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     let content = resolve_relative_urls(content);
+    let content = style_content_links(&content, newsletter);
+    let content = style_content_images(&content);
     let mut env = Environment::new();
     env.add_template("newsletter", include_str!("newsletter.html"))?;
     let tmpl = env.get_template("newsletter")?;
@@ -179,6 +224,98 @@ mod tests {
         assert_eq!(
             result,
             r#"<a href="https://www.philipithomas.com/local">local</a> <a href="https://external.com">ext</a> <img src="https://www.philipithomas.com/img.png">"#
+        );
+    }
+
+    #[test]
+    fn styles_links_with_contraption_accent() {
+        let html = r#"<a href="https://example.com">link</a>"#;
+        let result = style_content_links(html, Some("contraption"));
+        assert_eq!(
+            result,
+            r#"<a style="color: #3B3834; text-decoration: underline; text-decoration-color: #2b4a3e; text-underline-offset: 2px;" href="https://example.com">link</a>"#
+        );
+    }
+
+    #[test]
+    fn styles_links_with_workshop_accent() {
+        let html = r#"<a href="https://example.com">link</a>"#;
+        let result = style_content_links(html, Some("workshop"));
+        assert_eq!(
+            result,
+            r#"<a style="color: #3B3834; text-decoration: underline; text-decoration-color: #6b4d3a; text-underline-offset: 2px;" href="https://example.com">link</a>"#
+        );
+    }
+
+    #[test]
+    fn styles_links_with_postcard_accent() {
+        let html = r#"<a href="https://example.com">link</a>"#;
+        let result = style_content_links(html, Some("postcard"));
+        assert_eq!(
+            result,
+            r#"<a style="color: #3B3834; text-decoration: underline; text-decoration-color: #2c3e6b; text-underline-offset: 2px;" href="https://example.com">link</a>"#
+        );
+    }
+
+    #[test]
+    fn styles_links_with_default_accent() {
+        let html = r#"<a href="https://example.com">link</a>"#;
+        let result = style_content_links(html, None);
+        assert_eq!(
+            result,
+            r#"<a style="color: #3B3834; text-decoration: underline; text-decoration-color: #3B3834; text-underline-offset: 2px;" href="https://example.com">link</a>"#
+        );
+    }
+
+    #[test]
+    fn skips_links_with_existing_style() {
+        let html = r#"<a style="color: red;" href="https://example.com">link</a>"#;
+        let result = style_content_links(html, Some("contraption"));
+        assert_eq!(result, html);
+    }
+
+    #[test]
+    fn styles_multiple_links() {
+        let html = r#"<a href="https://one.com">one</a> and <a href="https://two.com">two</a>"#;
+        let result = style_content_links(html, Some("workshop"));
+        let expected = r#"<a style="color: #3B3834; text-decoration: underline; text-decoration-color: #6b4d3a; text-underline-offset: 2px;" href="https://one.com">one</a> and <a style="color: #3B3834; text-decoration: underline; text-decoration-color: #6b4d3a; text-underline-offset: 2px;" href="https://two.com">two</a>"#;
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn styles_img_without_style() {
+        let html = r#"<img src="https://example.com/photo.jpg" alt="photo">"#;
+        let result = style_content_images(html);
+        assert_eq!(
+            result,
+            r#"<img style="max-width: 100%; height: auto; display: block;" src="https://example.com/photo.jpg" alt="photo">"#
+        );
+    }
+
+    #[test]
+    fn skips_img_with_existing_style() {
+        let html = r#"<img style="width: 100px;" src="https://example.com/photo.jpg">"#;
+        let result = style_content_images(html);
+        assert_eq!(result, html);
+    }
+
+    #[test]
+    fn styles_multiple_images() {
+        let html = r#"<img src="a.jpg"> and <img src="b.jpg">"#;
+        let result = style_content_images(html);
+        assert_eq!(
+            result,
+            r#"<img style="max-width: 100%; height: auto; display: block;" src="a.jpg"> and <img style="max-width: 100%; height: auto; display: block;" src="b.jpg">"#
+        );
+    }
+
+    #[test]
+    fn styles_images_mixed_with_styled() {
+        let html = r#"<img src="a.jpg"> and <img style="width: 50px;" src="b.jpg">"#;
+        let result = style_content_images(html);
+        assert_eq!(
+            result,
+            r#"<img style="max-width: 100%; height: auto; display: block;" src="a.jpg"> and <img style="width: 50px;" src="b.jpg">"#
         );
     }
 }

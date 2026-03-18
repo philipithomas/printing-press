@@ -9,6 +9,11 @@
   @font-face { font-family: 'Sohne'; src: url('https://fonts.philipithomas.com/klim/soehne-buch.woff2') format('woff2'); font-weight: 400; font-display: swap; }
   @font-face { font-family: 'Sohne'; src: url('https://fonts.philipithomas.com/klim/soehne-halbfett.woff2') format('woff2'); font-weight: 600; font-display: swap; }
   @font-face { font-family: 'Tiempos Text'; src: url('https://fonts.philipithomas.com/klim/tiempos-text-regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+  .content-cell { overflow-wrap: anywhere; word-break: break-word; }
+  .content-cell img { max-width: 100% !important; height: auto !important; }
+  @media (max-width: 620px) {
+    .content-cell { padding: 24px 20px !important; }
+  }
 </style>
 </head>
 <body style="margin: 0; padding: 0; background-color: {{ bg_color }};">
@@ -40,9 +45,9 @@
   </tr>
   <tr>
     <td align="center" style="padding: 0 20px;">
-      <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 4px;">
+      <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #ffffff;">
         <tr>
-          <td style="padding: 40px; font-family: 'Tiempos Text', Georgia, 'Times New Roman', serif; font-size: 17px; line-height: 1.6; color: #3B3834;">
+          <td class="content-cell" style="padding: 32px; font-family: 'Tiempos Text', Georgia, 'Times New Roman', serif; font-size: 17px; line-height: 1.6; color: #3B3834; overflow: hidden; word-break: break-word;">
             {{ content }}
           </td>
         </tr>
