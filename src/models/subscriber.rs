@@ -196,6 +196,19 @@ impl Subscriber {
         Ok(rows.into_iter().map(|(id,)| id).collect())
     }
 
+    pub async fn count_active(pool: &PgPool) -> Result<i64, sqlx::Error> {
+        let row: (i64,) = sqlx::query_as(
+            r#"SELECT COUNT(*) FROM subscribers
+               WHERE confirmed_at IS NOT NULL
+                 AND (subscribed_postcard = TRUE
+                   OR subscribed_contraption = TRUE
+                   OR subscribed_workshop = TRUE)"#,
+        )
+        .fetch_one(pool)
+        .await?;
+        Ok(row.0)
+    }
+
     pub async fn delete_with_data(pool: &PgPool, id: i64) -> Result<(), sqlx::Error> {
         let mut tx = pool.begin().await?;
         sqlx::query("DELETE FROM logins WHERE subscriber_id = $1")

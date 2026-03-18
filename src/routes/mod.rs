@@ -9,6 +9,7 @@ use crate::state::AppState;
 mod emails;
 mod health;
 mod publish;
+mod stats;
 mod subscribers;
 mod unsubscribe;
 mod verify;
@@ -31,6 +32,7 @@ mod verify;
         publish::validate,
         publish::send,
         publish::send_one,
+        stats::subscriber_count,
     ),
     components(schemas(
         crate::models::subscriber::Subscriber,
@@ -50,6 +52,7 @@ mod verify;
         unsubscribe::UpdatePreferencesRequest,
         subscribers::DeleteResponse,
         unsubscribe::SuccessResponse,
+        stats::SubscriberCountResponse,
     ))
 )]
 struct ApiDoc;
@@ -69,6 +72,7 @@ pub fn router(state: AppState) -> Router {
     let mut app = Router::new()
         .merge(health::routes())
         .merge(unsubscribe::public_routes())
+        .merge(stats::public_routes())
         .nest("/api/v1", api_routes);
 
     // Only expose Swagger UI in development (not on production public_url)
