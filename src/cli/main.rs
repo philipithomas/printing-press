@@ -19,7 +19,7 @@ struct Cli {
 enum Commands {
     /// Publish a post to subscribers
     Publish {
-        /// Post slug (e.g., "my-post")
+        /// Post slug or URL (e.g., "my-post" or "https://www.philipithomas.com/my-post")
         slug: String,
         /// Force send even if some subscribers already received it
         #[arg(long)]
@@ -27,6 +27,14 @@ enum Commands {
         /// Send to a single email address (test mode)
         #[arg(long)]
         to: Option<String>,
+    },
+    /// Import subscribers from a CSV file
+    Import {
+        /// CSV format: ghost-members or postcard
+        #[arg(long)]
+        format: String,
+        /// Path to CSV file
+        path: String,
     },
 }
 
@@ -38,6 +46,9 @@ async fn main() -> anyhow::Result<()> {
     match cli.command {
         Commands::Publish { slug, force, to } => {
             commands::publish::run(&env_config, &slug, force, to.as_deref()).await?;
+        }
+        Commands::Import { format, path } => {
+            commands::import::run(&env_config, &format, &path).await?;
         }
     }
 

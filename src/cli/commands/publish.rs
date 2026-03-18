@@ -5,34 +5,33 @@ use crate::config::{self, EnvConfig};
 
 pub async fn run(
     env_config: &EnvConfig,
-    slug: &str,
+    slug_or_url: &str,
     force: bool,
     to: Option<&str>,
 ) -> anyhow::Result<()> {
+    let slug = extract_slug(slug_or_url);
+
     // Step 1: Get API key from 1Password
     let api_key = config::read_api_key(env_config)?;
     let client = PpClient::new(env_config, api_key);
 
     // Step 2: Fetch post from website
     println!("Fetching post '{}'...", slug);
-    let post = client.fetch_post(slug).await?;
+    let post = client.fetch_post(&slug).await?;
     let subject = post.title.clone();
 
     // Step 3: Validate with printing-press
-    let validation = client.validate(slug, &post.newsletter).await?;
+    let validation = client.validate(&slug, &post.newsletter).await?;
 
     println!();
     println!("  Post:       \"{}\"", post.title);
     println!("  Newsletter: {}", capitalize(&post.newsletter));
-    println!(
-        "  Will send to: {} subscribers",
-        validation.eligible_subscribers
-    );
-    println!("  Already sent: {}", validation.already_sent);
-    println!();
 
     // Step 4: Handle --to (test send)
     if let Some(email) = to {
+        println!("  Test send:  {}", email);
+        println!();
+
         let confirm = Confirm::new()
             .with_prompt(format!(
                 "Send test of \"{}\" to {} in {}?",
@@ -47,7 +46,7 @@ pub async fn run(
         }
 
         let result = client
-            .send_one(email, slug, &post.newsletter, &subject, &post.email_html)
+            .send_one(email, &slug, &post.newsletter, &subject, &post.email_html)
             .await?;
 
         if result.status == "sent" {
@@ -60,6 +59,13 @@ pub async fn run(
         }
         return Ok(());
     }
+
+    println!(
+        "  Will send to: {} subscribers",
+        validation.eligible_subscribers
+    );
+    println!("  Already sent: {}", validation.already_sent);
+    println!();
 
     // Step 5: Safety check for already-sent
     if validation.already_sent > 0 && !force {
@@ -91,7 +97,7 @@ pub async fn run(
 
     // Step 7: Enqueue sends
     let result = client
-        .send(slug, &post.newsletter, &subject, &post.email_html, force)
+        .send(&slug, &post.newsletter, &subject, &post.email_html, force)
         .await?;
 
     println!("Enqueued {} emails for delivery.", result.enqueued);
@@ -102,10 +108,65 @@ pub async fn run(
     Ok(())
 }
 
+/// Extract slug from a URL or return as-is if already a slug.
+/// Supports full URLs like `https://www.philipithomas.com/my-post`
+/// or `http://localhost:3000/my-post`, stripping the trailing slash if present.
+fn extract_slug(input: &str) -> String {
+    if input.starts_with("http://") || input.starts_with("https://") {
+        input
+            .trim_end_matches('/')
+            .rsplit('/')
+            .next()
+            .unwrap_or(input)
+            .to_string()
+    } else {
+        input.to_string()
+    }
+}
+
 fn capitalize(s: &str) -> String {
     let mut chars = s.chars();
     match chars.next() {
         None => String::new(),
         Some(c) => c.to_uppercase().to_string() + chars.as_str(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn extract_slug_from_production_url() {
+        assert_eq!(
+            extract_slug("https://www.philipithomas.com/2026-03"),
+            "2026-03"
+        );
+    }
+
+    #[test]
+    fn extract_slug_from_production_url_with_trailing_slash() {
+        assert_eq!(
+            extract_slug("https://www.philipithomas.com/my-post/"),
+            "my-post"
+        );
+    }
+
+    #[test]
+    fn extract_slug_from_localhost_url() {
+        assert_eq!(
+            extract_slug("http://localhost:3000/fresh-coat-of-paint"),
+            "fresh-coat-of-paint"
+        );
+    }
+
+    #[test]
+    fn extract_slug_passthrough_plain_slug() {
+        assert_eq!(extract_slug("my-post"), "my-post");
+    }
+
+    #[test]
+    fn extract_slug_passthrough_slug_with_no_scheme() {
+        assert_eq!(extract_slug("some-slug"), "some-slug");
     }
 }
