@@ -56,6 +56,7 @@ pub async fn send_email(
         &unsubscribe_url,
         &state.config.site_url,
         None,
+        None,
     )
     .map_err(|e| AppError::Internal(format!("Template error: {}", e)))?;
 

@@ -15,6 +15,7 @@ pub struct PostInfo {
     pub title: String,
     pub newsletter: String,
     pub email_html: String,
+    pub subtitle: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -39,6 +40,7 @@ struct SendBody {
     subject: String,
     html_content: String,
     force: bool,
+    preview_text: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -54,6 +56,7 @@ struct SendOneBody {
     newsletter: String,
     subject: String,
     html_content: String,
+    preview_text: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -134,6 +137,7 @@ impl PpClient {
         subject: &str,
         html_content: &str,
         force: bool,
+        preview_text: Option<&str>,
     ) -> anyhow::Result<SendResponse> {
         let url = format!("{}/api/v1/publish/send", self.server_url);
         let resp = self
@@ -146,6 +150,7 @@ impl PpClient {
                 subject: subject.to_string(),
                 html_content: html_content.to_string(),
                 force,
+                preview_text: preview_text.map(|s| s.to_string()),
             })
             .send()
             .await
@@ -175,6 +180,7 @@ impl PpClient {
         newsletter: &str,
         subject: &str,
         html_content: &str,
+        preview_text: Option<&str>,
     ) -> anyhow::Result<SendOneResponse> {
         let url = format!("{}/api/v1/publish/send-one", self.server_url);
         let resp = self
@@ -187,6 +193,7 @@ impl PpClient {
                 newsletter: newsletter.to_string(),
                 subject: subject.to_string(),
                 html_content: html_content.to_string(),
+                preview_text: preview_text.map(|s| s.to_string()),
             })
             .send()
             .await

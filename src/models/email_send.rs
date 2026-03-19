@@ -19,6 +19,7 @@ pub struct EmailSend {
     pub sent_at: Option<DateTime<Utc>>,
     pub attempts: i32,
     pub next_attempt_at: Option<DateTime<Utc>>,
+    pub preview_text: Option<String>,
 }
 
 impl EmailSend {
@@ -86,10 +87,11 @@ impl EmailSend {
         newsletter: &str,
         subject: &str,
         html_content: &str,
+        preview_text: Option<&str>,
     ) -> Result<i64, sqlx::Error> {
         let result = sqlx::query(
-            r#"INSERT INTO email_sends (subscriber_id, post_slug, newsletter, subject, html_content, next_attempt_at)
-               SELECT unnest($1::bigint[]), $2, $3, $4, $5, NOW()
+            r#"INSERT INTO email_sends (subscriber_id, post_slug, newsletter, subject, html_content, preview_text, next_attempt_at)
+               SELECT unnest($1::bigint[]), $2, $3, $4, $5, $6, NOW()
                "#,
         )
         .bind(subscriber_ids)
@@ -97,6 +99,7 @@ impl EmailSend {
         .bind(newsletter)
         .bind(subject)
         .bind(html_content)
+        .bind(preview_text)
         .execute(pool)
         .await?;
         Ok(result.rows_affected() as i64)

@@ -80,6 +80,7 @@ pub struct SendRequest {
     pub html_content: String,
     #[serde(default)]
     pub force: bool,
+    pub preview_text: Option<String>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -135,6 +136,7 @@ pub async fn send(
         &req.newsletter,
         &req.subject,
         &req.html_content,
+        req.preview_text.as_deref(),
     )
     .await?;
 
@@ -162,6 +164,7 @@ pub struct SendOneRequest {
     pub newsletter: Option<String>,
     pub subject: String,
     pub html_content: String,
+    pub preview_text: Option<String>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -194,6 +197,7 @@ pub async fn send_one(
         &unsubscribe_url,
         &state.config.site_url,
         req.newsletter.as_deref(),
+        req.preview_text.as_deref(),
     )
     .map_err(|e| AppError::Internal(format!("Template error: {}", e)))?;
 

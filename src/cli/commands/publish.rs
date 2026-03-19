@@ -19,6 +19,7 @@ pub async fn run(
     println!("Fetching post '{}'...", slug);
     let post = client.fetch_post(&slug).await?;
     let subject = post.title.clone();
+    let preview_text = post.subtitle.clone();
 
     // Step 3: Validate with printing-press
     let validation = client.validate(&slug, &post.newsletter).await?;
@@ -46,7 +47,7 @@ pub async fn run(
         }
 
         let result = client
-            .send_one(email, &slug, &post.newsletter, &subject, &post.email_html)
+            .send_one(email, &slug, &post.newsletter, &subject, &post.email_html, preview_text.as_deref())
             .await?;
 
         if result.status == "sent" {
@@ -97,7 +98,7 @@ pub async fn run(
 
     // Step 7: Enqueue sends
     let result = client
-        .send(&slug, &post.newsletter, &subject, &post.email_html, force)
+        .send(&slug, &post.newsletter, &subject, &post.email_html, force, preview_text.as_deref())
         .await?;
 
     println!("Enqueued {} emails for delivery.", result.enqueued);

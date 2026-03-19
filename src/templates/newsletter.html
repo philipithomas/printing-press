@@ -18,7 +18,12 @@
 </style>
 </head>
 <body style="margin: 0; padding: 0; background-color: {{ bg_color }};">
+{% if preview_text %}
+<div style="display: none; max-height: 0px; overflow: hidden; font-size: 1px; line-height: 1px; color: #ffffff;">{{ preview_text }}</div>
+<div style="display: none; max-height: 0px; overflow: hidden;">&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>
+{% endif %}
 <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: {{ bg_color }};">
+
   <tr>
     <td align="center" style="padding: 40px 20px 0;">
       <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px;">

@@ -103,6 +103,7 @@ pub fn render_newsletter(
     unsubscribe_url: &str,
     site_url: &str,
     newsletter: Option<&str>,
+    preview_text: Option<&str>,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     let content = resolve_relative_urls(content);
     let content = style_content_links(&content, newsletter);
@@ -118,6 +119,7 @@ pub fn render_newsletter(
         site_title => "philipithomas.com",
         newsletter => newsletter.unwrap_or(""),
         bg_color => bg_color,
+        preview_text => preview_text.unwrap_or(""),
         current_year => chrono::Utc::now().format("%Y").to_string(),
     })?;
     Ok(result)
