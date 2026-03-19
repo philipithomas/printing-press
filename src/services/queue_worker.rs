@@ -157,6 +157,7 @@ async fn process_batch(
                 &html,
                 &unsubscribe_url,
                 &unsubscribe_post_url,
+                queued.preview_text.as_deref(),
             )
             .await
         {

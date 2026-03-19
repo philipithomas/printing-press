@@ -69,6 +69,7 @@ pub async fn send_email(
             &html,
             &unsubscribe_url,
             &unsubscribe_post_url,
+            None,
         )
         .await
     {

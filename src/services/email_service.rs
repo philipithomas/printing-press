@@ -170,8 +170,15 @@ fn build_newsletter_message(
     html_body: &str,
     unsubscribe_url: &str,
     unsubscribe_post_url: &str,
+    preview_text: Option<&str>,
 ) -> Result<lettre::Message, Box<dyn std::error::Error + Send + Sync>> {
     use lettre::message::header::ContentType;
+    use lettre::message::{MultiPart, SinglePart};
+
+    let plain_body = match preview_text {
+        Some(pt) if !pt.is_empty() => format!("{}\n\n{}", pt, subject),
+        _ => subject.to_string(),
+    };
 
     let email = lettre::Message::builder()
         .from(from.parse()?)
@@ -182,8 +189,19 @@ fn build_newsletter_message(
             unsubscribe_post_url, unsubscribe_url
         )))
         .header(ListUnsubscribePostHeader)
-        .header(ContentType::TEXT_HTML)
-        .body(html_body.to_string())?;
+        .multipart(
+            MultiPart::alternative()
+                .singlepart(
+                    SinglePart::builder()
+                        .header(ContentType::TEXT_PLAIN)
+                        .body(plain_body),
+                )
+                .singlepart(
+                    SinglePart::builder()
+                        .header(ContentType::TEXT_HTML)
+                        .body(html_body.to_string()),
+                ),
+        )?;
 
     Ok(email)
 }
@@ -242,6 +260,7 @@ impl EmailService {
         html_body: &str,
         unsubscribe_url: &str,
         unsubscribe_post_url: &str,
+        preview_text: Option<&str>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let message = build_newsletter_message(
             to,
@@ -250,6 +269,7 @@ impl EmailService {
             html_body,
             unsubscribe_url,
             unsubscribe_post_url,
+            preview_text,
         )?;
         match self.backend.as_ref() {
             EmailBackend::Ses(ses) => {

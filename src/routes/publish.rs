@@ -209,6 +209,7 @@ pub async fn send_one(
             &html,
             &unsubscribe_url,
             &unsubscribe_post_url,
+            req.preview_text.as_deref(),
         )
         .await
     {
