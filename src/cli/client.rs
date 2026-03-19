@@ -15,7 +15,7 @@ pub struct PostInfo {
     pub title: String,
     pub newsletter: String,
     pub email_html: String,
-    pub subtitle: Option<String>,
+    pub preview_text: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

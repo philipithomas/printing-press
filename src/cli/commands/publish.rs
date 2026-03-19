@@ -19,7 +19,7 @@ pub async fn run(
     println!("Fetching post '{}'...", slug);
     let post = client.fetch_post(&slug).await?;
     let subject = post.title.clone();
-    let preview_text = post.subtitle.clone();
+    let preview_text = post.preview_text.clone();
 
     // Step 3: Validate with printing-press
     let validation = client.validate(&slug, &post.newsletter).await?;
