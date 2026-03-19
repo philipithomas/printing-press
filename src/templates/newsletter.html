@@ -8,6 +8,7 @@
   body { margin: 0; padding: 0; background-color: {{ bg_color }}; font-family: 'Sohne', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
   @font-face { font-family: 'Sohne'; src: url('https://fonts.philipithomas.com/klim/soehne-buch.woff2') format('woff2'); font-weight: 400; font-display: swap; }
   @font-face { font-family: 'Sohne'; src: url('https://fonts.philipithomas.com/klim/soehne-halbfett.woff2') format('woff2'); font-weight: 600; font-display: swap; }
+  @font-face { font-family: 'Sohne Mono'; src: url('https://fonts.philipithomas.com/klim/soehne-mono-buch.woff2') format('woff2'); font-weight: 400; font-display: swap; }
   @font-face { font-family: 'Tiempos Text'; src: url('https://fonts.philipithomas.com/klim/tiempos-text-regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
   .content-cell { overflow-wrap: anywhere; word-break: break-word; }
   .content-cell img { max-width: 100% !important; height: auto !important; }
@@ -25,15 +26,15 @@
           <td style="padding: 0 0 20px; text-align: center;">
             {% if newsletter == "contraption" %}
             <a href="{{ site_url }}/contraption" style="text-decoration: none;">
-              <img src="{{ site_url }}/images/contraption.svg" alt="Contraption" height="17" style="height: 17px; width: auto;">
+              <img src="{{ site_url }}/images/contraption-email.png" alt="Contraption" width="95" height="17" style="height: 17px; width: 95px;">
             </a>
             {% elif newsletter == "workshop" %}
             <a href="{{ site_url }}/workshop" style="text-decoration: none;">
-              <img src="{{ site_url }}/images/workshop-brand.svg" alt="Workshop" height="24" style="height: 24px; width: auto;">
+              <img src="{{ site_url }}/images/workshop-brand-email.png" alt="Workshop" width="87" height="24" style="height: 24px; width: 87px;">
             </a>
             {% elif newsletter == "postcard" %}
             <a href="{{ site_url }}/postcard" style="text-decoration: none;">
-              <img src="{{ site_url }}/images/postcard.svg" alt="Postcard" height="18" style="height: 18px; width: auto;">
+              <img src="{{ site_url }}/images/postcard-email.png" alt="Postcard" width="79" height="18" style="height: 18px; width: 79px;">
             </a>
             {% else %}
             <a href="{{ site_url }}" style="font-family: 'Sohne', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: #111110; text-decoration: none;">philipithomas.com</a>
