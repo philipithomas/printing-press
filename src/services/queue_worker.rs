@@ -126,14 +126,8 @@ async fn process_batch(
             }
         };
 
-        let unsubscribe_url = format!(
-            "{}/unsubscribe?token={}",
-            config.site_url, queued.unsubscribe_token
-        );
-        let unsubscribe_post_url = format!(
-            "{}/api/v1/unsubscribe/{}",
-            config.public_url, queued.unsubscribe_token
-        );
+        let unsubscribe_url = config.unsubscribe_url(queued.unsubscribe_token);
+        let unsubscribe_post_url = config.unsubscribe_post_url(queued.unsubscribe_token);
 
         let html = match crate::templates::render_newsletter(
             html_content,

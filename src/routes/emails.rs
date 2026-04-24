@@ -41,14 +41,10 @@ pub async fn send_email(
     let email_send = EmailSend::create(&state.pool, subscriber.id, &req.post_slug).await?;
 
     // Build unsubscribe URLs
-    let unsubscribe_url = format!(
-        "{}/unsubscribe?token={}",
-        state.config.site_url, email_send.unsubscribe_token
-    );
-    let unsubscribe_post_url = format!(
-        "{}/api/v1/unsubscribe/{}",
-        state.config.public_url, email_send.unsubscribe_token
-    );
+    let unsubscribe_url = state.config.unsubscribe_url(email_send.unsubscribe_token);
+    let unsubscribe_post_url = state
+        .config
+        .unsubscribe_post_url(email_send.unsubscribe_token);
 
     // Wrap content in newsletter template
     let html = crate::templates::render_newsletter(

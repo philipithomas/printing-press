@@ -114,6 +114,9 @@ The legacy `GET /api/v1/unsubscribe/{token}` endpoint redirects to the frontend 
 | `SMTP_HOST` | `localhost` | SMTP host for local dev |
 | `SMTP_PORT` | `1025` | SMTP port for local dev |
 | `SES_RATE_PER_SECOND` | `14` | Max emails per second (SES rate limit) |
+| `PUBLIC_URL` | `http://localhost:8080` | Public backend URL for `List-Unsubscribe-Post`; production falls back to `https://printing-press.contraption.co` when `SITE_URL` is `philipithomas.com` |
+
+For production email delivery, `PUBLIC_URL` must be a public HTTPS URL. The server refuses to start with a local or non-HTTPS `PUBLIC_URL` when using SES or a production `SITE_URL`, because that would generate broken one-click unsubscribe headers.
 
 ## API
 
