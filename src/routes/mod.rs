@@ -29,6 +29,7 @@ mod verify;
         unsubscribe::one_click_unsubscribe,
         unsubscribe::get_preferences,
         unsubscribe::update_preferences,
+        unsubscribe::delete_account,
         emails::send_email,
         publish::validate,
         publish::send,

@@ -2,7 +2,7 @@ use axum::{
     Json, Router,
     extract::{Path, State},
     response::Redirect,
-    routing::get,
+    routing::{delete, get},
 };
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -23,7 +23,10 @@ pub fn public_routes() -> Router<AppState> {
             "/api/v1/unsubscribe/{token}/preferences",
             get(get_preferences).patch(update_preferences),
         )
-    // Account deletion requires JWT auth — use DELETE /api/v1/subscribers/{uuid} instead
+        .route(
+            "/api/v1/unsubscribe/{token}/account",
+            delete(delete_account),
+        )
 }
 
 pub fn authenticated_routes() -> Router<AppState> {
@@ -151,6 +154,39 @@ pub async fn update_preferences(
     };
     Subscriber::update(&state.pool, subscriber.uuid, &update).await?;
     tracing::info!(email = %subscriber.email, "Subscriber preferences updated via unsubscribe token");
+
+    Ok(Json(SuccessResponse { success: true }))
+}
+
+// --- Delete account ---
+
+#[utoipa::path(
+    delete,
+    path = "/api/v1/unsubscribe/{token}/account",
+    params(("token" = Uuid, Path, description = "Unsubscribe token from email")),
+    responses(
+        (status = 200, description = "Subscriber deleted", body = SuccessResponse),
+        (status = 404, description = "Invalid token"),
+    )
+)]
+pub async fn delete_account(
+    State(state): State<AppState>,
+    Path(token): Path<Uuid>,
+) -> Result<Json<SuccessResponse>, AppError> {
+    let email_send = EmailSend::find_by_unsubscribe_token(&state.pool, token)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    let subscriber = Subscriber::find_by_id(&state.pool, email_send.subscriber_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let subscriber_uuid = subscriber.uuid;
+
+    Subscriber::delete_with_data(&state.pool, subscriber.id).await?;
+    tracing::info!(
+        subscriber_uuid = %subscriber_uuid,
+        "Subscriber account deleted via unsubscribe token"
+    );
 
     Ok(Json(SuccessResponse { success: true }))
 }
