@@ -1,12 +1,12 @@
 use axum::{
     Json, Router,
-    extract::{Path, State},
+    extract::{Path, Query, State},
     routing::{delete, get, patch, post},
 };
 use uuid::Uuid;
 
-use serde::Serialize;
-use utoipa::ToSchema;
+use serde::{Deserialize, Serialize};
+use utoipa::{IntoParams, ToSchema};
 
 use crate::error::AppError;
 use crate::models::subscriber::{CreateSubscriberRequest, Subscriber, UpdateSubscriberRequest};
@@ -18,9 +18,32 @@ pub struct DeleteResponse {
     pub success: bool,
 }
 
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct ExportQuery {
+    /// Return subscribers with id greater than this (keyset pagination).
+    #[serde(default)]
+    pub after_id: i64,
+    /// Page size, capped at 1000.
+    #[serde(default = "default_export_limit")]
+    pub limit: i64,
+}
+
+fn default_export_limit() -> i64 {
+    500
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct ExportPage {
+    pub subscribers: Vec<Subscriber>,
+    pub total: i64,
+}
+
 pub fn routes() -> Router<AppState> {
     Router::new()
-        .route("/subscribers", post(create_subscriber))
+        .route(
+            "/subscribers",
+            post(create_subscriber).get(export_subscribers),
+        )
         .route("/subscribers/{uuid}", get(get_subscriber))
         .route("/subscribers/{uuid}", patch(update_subscriber))
         .route(
@@ -46,6 +69,29 @@ pub async fn create_subscriber(
 ) -> Result<Json<Subscriber>, AppError> {
     let result = subscriber_service::create_or_retrieve(&state, &req).await?;
     Ok(Json(result.subscriber))
+}
+
+/// One-time migration export: pages through every subscriber (including
+/// unconfirmed and fully-unsubscribed rows) so the successor system can
+/// mirror the data exactly. Auth is the same x-api-key as the other
+/// authenticated routes.
+#[utoipa::path(
+    get,
+    path = "/api/v1/subscribers",
+    params(ExportQuery),
+    responses(
+        (status = 200, description = "Page of subscribers", body = ExportPage),
+        (status = 401, description = "Unauthorized"),
+    )
+)]
+pub async fn export_subscribers(
+    State(state): State<AppState>,
+    Query(query): Query<ExportQuery>,
+) -> Result<Json<ExportPage>, AppError> {
+    let limit = query.limit.clamp(1, 1000);
+    let subscribers = Subscriber::list_page(&state.pool, query.after_id, limit).await?;
+    let total = Subscriber::count_all(&state.pool).await?;
+    Ok(Json(ExportPage { subscribers, total }))
 }
 
 #[utoipa::path(

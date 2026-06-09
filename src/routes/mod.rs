@@ -20,6 +20,7 @@ mod verify;
     paths(
         health::health,
         subscribers::create_subscriber,
+        subscribers::export_subscribers,
         subscribers::get_subscriber,
         subscribers::update_subscriber,
         subscribers::unsubscribe_subscriber,
@@ -54,6 +55,7 @@ mod verify;
         unsubscribe::PreferencesResponse,
         unsubscribe::UpdatePreferencesRequest,
         subscribers::DeleteResponse,
+        subscribers::ExportPage,
         unsubscribe::SuccessResponse,
         stats::SubscriberCountResponse,
         import::ImportRequest,

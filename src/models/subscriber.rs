@@ -112,6 +112,28 @@ impl Subscriber {
         .await
     }
 
+    /// Keyset-paginated listing for the one-time migration export. Ordered by
+    /// id so pages are stable under concurrent inserts.
+    pub async fn list_page(
+        pool: &PgPool,
+        after_id: i64,
+        limit: i64,
+    ) -> Result<Vec<Self>, sqlx::Error> {
+        sqlx::query_as::<_, Self>(
+            "SELECT * FROM subscribers WHERE id > $1 ORDER BY id LIMIT $2",
+        )
+        .bind(after_id)
+        .bind(limit)
+        .fetch_all(pool)
+        .await
+    }
+
+    pub async fn count_all(pool: &PgPool) -> Result<i64, sqlx::Error> {
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM subscribers")
+            .fetch_one(pool)
+            .await
+    }
+
     pub async fn confirm(pool: &PgPool, id: i64) -> Result<Self, sqlx::Error> {
         sqlx::query_as::<_, Self>(
             r#"UPDATE subscribers SET confirmed_at = NOW(), updated_at = NOW()
